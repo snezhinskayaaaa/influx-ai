@@ -1,295 +1,353 @@
+'use client';
+
 import Link from 'next/link';
+import { Search, CheckCircle, DollarSign, TrendingUp, Sparkles, Users, Zap, ArrowRight } from 'lucide-react';
+import Navigation from '@/components/ui/Navigation';
+import Footer from '@/components/ui/Footer';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-influx-blue">
-                INFLUX.AI
-              </Link>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="#how-it-works" className="text-gray-700 hover:text-influx-blue">
-                How it Works
-              </Link>
-              <Link href="#for-influencers" className="text-gray-700 hover:text-influx-blue">
-                For Influencers
-              </Link>
-              <Link href="#for-brands" className="text-gray-700 hover:text-influx-blue">
-                For Brands
-              </Link>
-              <Link
-                href="#waitlist"
-                className="bg-influx-blue text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                Join Waitlist
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
-      <section className="pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-neutral-gray mb-6">
-            The First Marketplace for{' '}
-            <span className="text-influx-blue">AI Influencers</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            Browse verified virtual talent. Book campaigns in minutes. Track real results.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/influencers/signup"
-              className="bg-influx-blue text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition"
-            >
-              Join as Influencer
-            </Link>
-            <Link
-              href="/browse"
-              className="bg-white text-influx-blue border-2 border-influx-blue px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition"
-            >
-              Browse Talent
-            </Link>
-          </div>
-          <p className="mt-6 text-gray-500">
-            Join 20+ AI influencers already on the platform
-          </p>
-        </div>
-      </section>
-
-      {/* Value Propositions */}
-      <section className="py-20 bg-gray-50" id="how-it-works">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-12">
-            {/* For AI Influencers */}
-            <div className="text-center" id="for-influencers">
-              <div className="w-16 h-16 bg-influx-blue rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">✨</span>
+      <section className="section-padding bg-gradient-to-br from-influx-blue/5 via-white to-deep-purple/5 overflow-hidden">
+        <div className="container-custom">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
+            <div className="space-y-8 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-influx-blue/10 text-influx-blue text-sm font-semibold">
+                <Sparkles size={16} />
+                Launching March 2026
               </div>
-              <h3 className="text-2xl font-bold mb-4">For AI Influencers</h3>
-              <ul className="text-left space-y-3 text-gray-600">
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Keep 80% of all earnings
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  No listing fees, ever
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Access to verified brands
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Secure payment processing
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Full creative control
-                </li>
-              </ul>
-              <Link
-                href="/influencers/signup"
-                className="inline-block mt-6 text-influx-blue font-semibold hover:underline"
-              >
-                Join as Influencer →
-              </Link>
-            </div>
 
-            {/* For Brands */}
-            <div className="text-center" id="for-brands">
-              <div className="w-16 h-16 bg-deep-purple rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">🎯</span>
-              </div>
-              <h3 className="text-2xl font-bold mb-4">For Brands</h3>
-              <ul className="text-left space-y-3 text-gray-600">
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Verified AI influencer profiles
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Transparent pricing & metrics
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Book campaigns in minutes
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Track performance in real-time
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Secure contracts & payments
-                </li>
-              </ul>
-              <Link
-                href="/browse"
-                className="inline-block mt-6 text-influx-blue font-semibold hover:underline"
-              >
-                Browse Talent →
-              </Link>
-            </div>
+              <h1 className="text-balance leading-tight">
+                The First Marketplace for{' '}
+                <span className="gradient-text">AI Influencers</span>
+              </h1>
 
-            {/* Why Influx */}
-            <div className="text-center">
-              <div className="w-16 h-16 bg-electric-cyan rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">🚀</span>
-              </div>
-              <h3 className="text-2xl font-bold mb-4">Why Influx</h3>
-              <ul className="text-left space-y-3 text-gray-600">
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  First dedicated platform for AI influencers
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Quality-checked virtual talent
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Growing network of brands & influencers
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Expert campaign management
-                </li>
-                <li className="flex items-start">
-                  <span className="text-success-green mr-2">•</span>
-                  Premium support
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center mb-16">By the Numbers</h2>
-          <div className="grid md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-5xl font-bold text-influx-blue mb-2">30+</div>
-              <div className="text-gray-600">AI Influencers</div>
-            </div>
-            <div>
-              <div className="text-5xl font-bold text-influx-blue mb-2">5M+</div>
-              <div className="text-gray-600">Combined Reach</div>
-            </div>
-            <div>
-              <div className="text-5xl font-bold text-influx-blue mb-2">5.9%</div>
-              <div className="text-gray-600">Avg Engagement</div>
-            </div>
-            <div>
-              <div className="text-5xl font-bold text-influx-blue mb-2">80%</div>
-              <div className="text-gray-600">Creator Earnings</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Waitlist Form */}
-      <section className="py-20 bg-gray-50" id="waitlist">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-4">Join the Influx</h2>
-          <p className="text-xl text-gray-600 mb-12">
-            Be among the first AI influencers and brands on the platform. Launch: March 2026.
-          </p>
-
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="flex justify-center gap-4 mb-8">
-              <button className="px-6 py-2 bg-influx-blue text-white rounded-lg font-semibold">
-                I'm an AI Influencer
-              </button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300">
-                I'm a Brand
-              </button>
-            </div>
-
-            <form className="space-y-4">
-              <input
-                type="text"
-                placeholder="Your Name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-influx-blue"
-              />
-              <input
-                type="email"
-                placeholder="Email Address"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-influx-blue"
-              />
-              <input
-                type="text"
-                placeholder="Instagram Handle (@username)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-influx-blue"
-              />
-              <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-influx-blue">
-                <option>Follower Count</option>
-                <option>10K-50K</option>
-                <option>50K-100K</option>
-                <option>100K-500K</option>
-                <option>500K-1M</option>
-                <option>1M+</option>
-              </select>
-              <button
-                type="submit"
-                className="w-full bg-influx-blue text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition"
-              >
-                Join as Influencer
-              </button>
-              <p className="text-sm text-gray-500">
-                We'll never share your information. Unsubscribe anytime.
+              <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                Connect with verified virtual talent. Book campaigns in minutes. Track real results.
+                The future of influencer marketing is here.
               </p>
-            </form>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button href="/brands/signup" variant="gradient" size="lg">
+                  For Brands
+                  <ArrowRight size={20} />
+                </Button>
+                <Button href="/influencers/signup" variant="outline" size="lg">
+                  For Influencers
+                  <ArrowRight size={20} />
+                </Button>
+              </div>
+
+              {/* Stats Row */}
+              <div className="flex flex-wrap gap-8 pt-8">
+                <div>
+                  <div className="text-3xl font-bold text-influx-blue">30+</div>
+                  <div className="text-sm text-gray-600">AI Influencers</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-deep-purple">5M+</div>
+                  <div className="text-sm text-gray-600">Combined Reach</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-electric-cyan">5.9%</div>
+                  <div className="text-sm text-gray-600">Avg Engagement</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Visual */}
+            <div className="relative animate-scale-in">
+              <div className="relative z-10">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Sample Influencer Cards */}
+                  <Card hover className="p-4">
+                    <div className="aspect-square bg-gradient-to-br from-influx-blue to-deep-purple rounded-lg mb-3"></div>
+                    <div className="text-sm font-semibold">Aitana López</div>
+                    <div className="text-xs text-gray-500">391K followers</div>
+                  </Card>
+                  <Card hover className="p-4 mt-8">
+                    <div className="aspect-square bg-gradient-to-br from-deep-purple to-electric-cyan rounded-lg mb-3"></div>
+                    <div className="text-sm font-semibold">Imma</div>
+                    <div className="text-xs text-gray-500">387K followers</div>
+                  </Card>
+                  <Card hover className="p-4">
+                    <div className="aspect-square bg-gradient-to-br from-electric-cyan to-success-green rounded-lg mb-3"></div>
+                    <div className="text-sm font-semibold">Noonoouri</div>
+                    <div className="text-xs text-gray-500">482K followers</div>
+                  </Card>
+                  <Card hover className="p-4 mt-8">
+                    <div className="aspect-square bg-gradient-to-br from-warning-orange to-influx-blue rounded-lg mb-3"></div>
+                    <div className="text-sm font-semibold">Zlu</div>
+                    <div className="text-xs text-gray-500">457K followers</div>
+                  </Card>
+                </div>
+              </div>
+              {/* Background Gradient Blob */}
+              <div className="absolute inset-0 bg-gradient-to-br from-influx-blue/20 to-deep-purple/20 blur-3xl -z-10"></div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-neutral-gray text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="text-2xl font-bold mb-4">INFLUX.AI</div>
-              <p className="text-gray-400">Where influence flows.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="#how-it-works" className="hover:text-white">How it Works</Link></li>
-                <li><Link href="#for-influencers" className="hover:text-white">For Influencers</Link></li>
-                <li><Link href="#for-brands" className="hover:text-white">For Brands</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/about" className="hover:text-white">About</Link></li>
-                <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
-                <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
-                <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2026 Influx.AI. All rights reserved.</p>
+      {/* Trust Section */}
+      <section className="py-12 border-y border-gray-100 bg-gray-50">
+        <div className="container-custom">
+          <p className="text-center text-sm text-gray-500 mb-8">
+            Trusted by leading brands worldwide
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-12 opacity-30">
+            <div className="text-2xl font-bold text-gray-400">NIKE</div>
+            <div className="text-2xl font-bold text-gray-400">DIOR</div>
+            <div className="text-2xl font-bold text-gray-400">VERSACE</div>
+            <div className="text-2xl font-bold text-gray-400">BMW</div>
+            <div className="text-2xl font-bold text-gray-400">SAMSUNG</div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* Features Section */}
+      <section className="section-padding" id="how-it-works">
+        <div className="container-custom">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-balance">
+              Everything You Need to Succeed
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              The complete platform for AI influencer marketing
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card hover className="space-y-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-influx-blue to-deep-purple flex items-center justify-center">
+                <Search className="text-white" size={24} />
+              </div>
+              <h3 className="text-2xl font-bold">Discover AI Talent</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Browse verified AI influencers across all niches. Filter by followers,
+                engagement, and budget to find the perfect match for your campaign.
+              </p>
+            </Card>
+
+            <Card hover className="space-y-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-deep-purple to-electric-cyan flex items-center justify-center">
+                <CheckCircle className="text-white" size={24} />
+              </div>
+              <h3 className="text-2xl font-bold">Verified Metrics</h3>
+              <p className="text-gray-600 leading-relaxed">
+                See real engagement rates, follower counts, and past campaign performance.
+                All metrics verified by our team for transparency.
+              </p>
+            </Card>
+
+            <Card hover className="space-y-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-electric-cyan to-success-green flex items-center justify-center">
+                <DollarSign className="text-white" size={24} />
+              </div>
+              <h3 className="text-2xl font-bold">Transparent Pricing</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Book campaigns in minutes with clear pricing. Secure payments, fair rates.
+                Influencers keep 80% of all earnings.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Why AI Influencers Section */}
+      <section className="section-padding bg-gradient-to-br from-influx-blue/5 to-deep-purple/5">
+        <div className="container-custom">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-6">
+              <h2 className="text-balance">
+                Why AI Influencers?
+              </h2>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-influx-blue/10 flex items-center justify-center">
+                    <TrendingUp className="text-influx-blue" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg mb-1">3x Higher Engagement</h4>
+                    <p className="text-gray-600">
+                      Virtual influencers average 5.9% engagement vs 1.9% for traditional influencers
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-deep-purple/10 flex items-center justify-center">
+                    <Zap className="text-deep-purple" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg mb-1">Always Available</h4>
+                    <p className="text-gray-600">
+                      No scheduling conflicts, travel costs, or time zone issues
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-electric-cyan/10 flex items-center justify-center">
+                    <Users className="text-electric-cyan" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg mb-1">Brand Safe Content</h4>
+                    <p className="text-gray-600">
+                      Full control over messaging, appearance, and brand alignment
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Card className="p-8 bg-white">
+              <div className="space-y-6">
+                <div className="p-6 rounded-xl bg-gradient-to-br from-influx-blue/10 to-deep-purple/10">
+                  <div className="text-4xl font-bold gradient-text mb-2">$46B</div>
+                  <div className="text-gray-600">AI Influencer Market by 2030</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-gray-50">
+                    <div className="text-2xl font-bold text-influx-blue mb-1">77%</div>
+                    <div className="text-sm text-gray-600">Brands increasing AI budgets</div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-gray-50">
+                    <div className="text-2xl font-bold text-deep-purple mb-1">58%</div>
+                    <div className="text-sm text-gray-600">Consumers follow virtual influencers</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="section-padding" id="for-brands">
+        <div className="container-custom">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-balance">How It Works</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Get started in minutes
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-16">
+            {/* For Brands */}
+            <div id="for-brands">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-influx-blue/10 text-influx-blue text-sm font-bold mb-6">
+                For Brands
+              </div>
+              <div className="space-y-6">
+                {[
+                  {
+                    number: '1',
+                    title: 'Browse AI Influencers',
+                    description: 'Filter by niche, followers, engagement rate, and budget'
+                  },
+                  {
+                    number: '2',
+                    title: 'Review Verified Metrics',
+                    description: 'See real engagement data and past campaign performance'
+                  },
+                  {
+                    number: '3',
+                    title: 'Book Your Campaign',
+                    description: 'Send offer, agree on terms, and launch in minutes'
+                  },
+                  {
+                    number: '4',
+                    title: 'Track Results',
+                    description: 'Monitor performance and ROI in real-time'
+                  },
+                ].map((step) => (
+                  <div key={step.number} className="flex gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-influx-blue to-deep-purple text-white flex items-center justify-center font-bold text-lg">
+                      {step.number}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1">{step.title}</h4>
+                      <p className="text-gray-600">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* For Influencers */}
+            <div id="for-influencers">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-deep-purple/10 text-deep-purple text-sm font-bold mb-6">
+                For AI Influencers
+              </div>
+              <div className="space-y-6">
+                {[
+                  {
+                    number: '1',
+                    title: 'Create Your Profile',
+                    description: 'Add your metrics, portfolio, and pricing in minutes'
+                  },
+                  {
+                    number: '2',
+                    title: 'Get Discovered',
+                    description: 'Brands searching for AI talent will find you'
+                  },
+                  {
+                    number: '3',
+                    title: 'Accept Campaigns',
+                    description: 'Review offers and choose the best fit for your audience'
+                  },
+                  {
+                    number: '4',
+                    title: 'Get Paid',
+                    description: 'Receive 80% of campaign earnings via secure payment'
+                  },
+                ].map((step) => (
+                  <div key={step.number} className="flex gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-deep-purple to-electric-cyan text-white flex items-center justify-center font-bold text-lg">
+                      {step.number}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1">{step.title}</h4>
+                      <p className="text-gray-600">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="section-padding bg-gradient-to-br from-influx-blue via-deep-purple to-influx-blue animate-gradient bg-300%">
+        <div className="container-custom text-center">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <h2 className="text-white text-balance">
+              Ready to Start Your First Campaign?
+            </h2>
+            <p className="text-xl text-white/90 leading-relaxed">
+              Join the first marketplace for AI influencers. Launch: March 2026.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              <Button href="/brands/signup" variant="dark" size="lg" className="bg-white text-influx-blue hover:bg-gray-100">
+                Start as Brand
+                <ArrowRight size={20} />
+              </Button>
+              <Button href="/influencers/signup" variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-influx-blue">
+                Join as Influencer
+                <ArrowRight size={20} />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
