@@ -7,6 +7,7 @@ import Navigation from '@/components/ui/Navigation';
 import Footer from '@/components/ui/Footer';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { createClient } from '@/lib/supabase/client';
 
 interface Influencer {
   id: string;
@@ -31,10 +32,20 @@ export default function BrowsePage() {
   const [sortBy, setSortBy] = useState('followers');
 
   useEffect(() => {
-    // Fetch influencers (placeholder for now)
-    setLoading(false);
-    // TODO: Replace with actual Supabase fetch
-    setInfluencers([]);
+    const fetchInfluencers = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('influencers')
+        .select('id, handle, bio, niche, instagram_followers, tiktok_followers, instagram_engagement, price_per_post, is_verified, is_featured')
+        .eq('status', 'approved')
+        .order('is_featured', { ascending: false })
+        .order('instagram_followers', { ascending: false });
+      if (!error && data) {
+        setInfluencers(data);
+      }
+      setLoading(false);
+    };
+    fetchInfluencers();
   }, []);
 
   const formatNumber = (num: number) => {
