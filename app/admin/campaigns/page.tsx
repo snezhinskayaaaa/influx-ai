@@ -2,28 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { Campaign, CampaignStatus } from '@/types/database';
 
-type CampaignWithRelations = Campaign & {
-  brands: { company_name: string } | null;
-  influencers: { handle: string } | null;
+type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
+type CampaignWithRelations = {
+  id: string;
+  title: string;
+  description: string | null;
+  budgetMin: number;
+  budgetMax: number;
+  status: CampaignStatus;
+  createdAt: string;
+  brand?: { companyName: string } | null;
+  _count?: { collaborations: number };
 };
 
 const STATUS_COLORS: Record<CampaignStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  pending: 'bg-yellow-100 text-yellow-800',
-  active: 'bg-green-100 text-green-800',
-  completed: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-red-100 text-red-800',
+  DRAFT: 'bg-gray-100 text-gray-700',
+  ACTIVE: 'bg-green-100 text-green-800',
+  COMPLETED: 'bg-blue-100 text-blue-800',
+  CANCELLED: 'bg-red-100 text-red-800',
 };
 
-const ALL_STATUSES: CampaignStatus[] = ['draft', 'pending', 'active', 'completed', 'cancelled'];
+const ALL_STATUSES: CampaignStatus[] = ['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
 
 function StatusBadge({ status }: { status: CampaignStatus }) {
   return (
     <span className={`text-xs px-2 py-1 rounded font-medium ${STATUS_COLORS[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -35,7 +41,7 @@ function formatMoney(cents: number): string {
 function SkeletonRow() {
   return (
     <tr className="border-b border-gray-100">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
         </td>
@@ -47,17 +53,16 @@ function SkeletonRow() {
 export default function CampaignManagementPage() {
   const [campaigns, setCampaigns] = useState<CampaignWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function fetchCampaigns() {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*, brands(company_name), influencers(handle)')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setCampaigns(data as CampaignWithRelations[]);
+    try {
+      const res = await fetch('/api/admin/campaigns');
+      if (res.ok) {
+        const data = await res.json();
+        setCampaigns(data.campaigns || []);
+      }
+    } catch {
+      // silently fail
     }
     setLoading(false);
   }
@@ -66,23 +71,6 @@ export default function CampaignManagementPage() {
     fetchCampaigns();
   }, []);
 
-  async function updateStatus(id: string, status: CampaignStatus) {
-    setActionLoading(id);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('campaigns')
-      .update({ status })
-      .eq('id', id);
-
-    if (!error) {
-      setCampaigns((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, status } : c))
-      );
-    }
-    setActionLoading(null);
-  }
-
-  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.platform_fee || 0), 0);
   const totalCampaigns = campaigns.length;
 
   return (
@@ -119,32 +107,25 @@ export default function CampaignManagementPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Campaign Management</h1>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-600 mb-1">Total Campaigns</div>
             <div className="text-3xl font-bold text-gray-900">{totalCampaigns}</div>
             <div className="text-xs text-gray-500 mt-1">All time</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600 mb-1">Total Revenue</div>
-            <div className="text-3xl font-bold text-success-green">
-              {formatMoney(totalRevenue)}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">Platform fees (20%)</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-600 mb-1">Active</div>
             <div className="text-3xl font-bold text-influx-blue">
-              {campaigns.filter((c) => c.status === 'active').length}
+              {campaigns.filter((c) => c.status === 'ACTIVE').length}
             </div>
             <div className="text-xs text-gray-500 mt-1">Running now</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600 mb-1">Pending</div>
-            <div className="text-3xl font-bold text-warning-orange">
-              {campaigns.filter((c) => c.status === 'pending').length}
+            <div className="text-sm font-medium text-gray-600 mb-1">Completed</div>
+            <div className="text-3xl font-bold text-success-green">
+              {campaigns.filter((c) => c.status === 'COMPLETED').length}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Awaiting action</div>
+            <div className="text-xs text-gray-500 mt-1">Finished</div>
           </div>
         </div>
 
@@ -175,12 +156,10 @@ export default function CampaignManagementPage() {
                 <tr className="bg-gray-50 border-b border-gray-200 text-left">
                   <th className="px-4 py-3 font-semibold text-gray-600">Title</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Brand</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Influencer</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Budget</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Platform Fee</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600">Budget Range</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600">Collaborations</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Status</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Dates</th>
-                  <th className="px-4 py-3 font-semibold text-gray-600">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600">Created</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,7 +167,7 @@ export default function CampaignManagementPage() {
                   Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
                 ) : campaigns.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                       No campaigns found.
                     </td>
                   </tr>
@@ -202,51 +181,19 @@ export default function CampaignManagementPage() {
                         <div className="truncate">{campaign.title}</div>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {campaign.brands?.company_name ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {campaign.influencers?.handle
-                          ? `@${campaign.influencers.handle}`
-                          : '—'}
+                        {campaign.brand?.companyName ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-900 font-medium">
-                        {formatMoney(campaign.budget)}
+                        {formatMoney(campaign.budgetMin)} - {formatMoney(campaign.budgetMax)}
                       </td>
-                      <td className="px-4 py-3 text-success-green font-medium">
-                        {formatMoney(campaign.platform_fee)}
+                      <td className="px-4 py-3 text-gray-600">
+                        {campaign._count?.collaborations ?? 0}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={campaign.status} />
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-xs">
-                        {campaign.start_date ? (
-                          <div>
-                            <div>{new Date(campaign.start_date).toLocaleDateString()}</div>
-                            {campaign.end_date && (
-                              <div className="text-gray-400">
-                                → {new Date(campaign.end_date).toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={campaign.status}
-                          disabled={actionLoading === campaign.id}
-                          onChange={(e) =>
-                            updateStatus(campaign.id, e.target.value as CampaignStatus)
-                          }
-                          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {ALL_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s.charAt(0).toUpperCase() + s.slice(1)}
-                            </option>
-                          ))}
-                        </select>
+                        {new Date(campaign.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
                   ))

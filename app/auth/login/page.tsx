@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -18,31 +16,21 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
-
-      if (error) throw error;
-
-      // Get user profile to determine role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        return;
+      }
 
       // Redirect based on role
-      if (profile?.role === 'influencer') {
-        router.push('/dashboard/influencer');
-      } else if (profile?.role === 'brand') {
-        router.push('/dashboard/brand');
-      } else if (profile?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      if (data.user.role === 'ADMIN') router.push('/admin');
+      else if (data.user.role === 'BRAND') router.push('/dashboard/brand');
+      else router.push('/dashboard/influencer');
     } catch (error: any) {
       setError(error.message || 'Failed to log in');
     } finally {

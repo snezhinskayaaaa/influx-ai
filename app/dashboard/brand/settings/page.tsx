@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 const INDUSTRIES = [
@@ -31,7 +30,6 @@ const BUDGET_RANGES = [
 export default function BrandSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
 
   // Account fields
@@ -51,6 +49,7 @@ export default function BrandSettingsPage() {
   const [companyToast, setCompanyToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Password fields
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
@@ -58,32 +57,38 @@ export default function BrandSettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      try {
+        const [profileRes, brandRes] = await Promise.all([
+          fetch('/api/profiles/me'),
+          fetch('/api/brands/me'),
+        ]);
+
+        if (!profileRes.ok) {
+          router.push('/auth/login');
+          return;
+        }
+
+        const profileData = await profileRes.json();
+        const brandData = brandRes.ok ? await brandRes.json() : null;
+
+        if (profileData.profile) {
+          setEmail(profileData.profile.email || '');
+          setFullName(profileData.profile.fullName || '');
+        }
+
+        if (brandData?.brand) {
+          const brand = brandData.brand;
+          setCompanyName(brand.companyName || '');
+          setIndustry(brand.industry || '');
+          setWebsite(brand.website || '');
+          setBrandDescription(brand.description || '');
+          setContactName(brand.contactName || '');
+          setContactEmail(brand.contactEmail || '');
+          setMonthlyBudgetRange(brand.monthlyBudgetRange || '');
+        }
+      } catch {
         router.push('/auth/login');
         return;
-      }
-      setUserId(user.id);
-      setEmail(user.email || '');
-
-      const [{ data: profile }, { data: brand }] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-        supabase.from('brands').select('*').eq('user_id', user.id).single(),
-      ]);
-
-      if (profile) {
-        setFullName(profile.full_name || '');
-      }
-
-      if (brand) {
-        setCompanyName(brand.company_name || '');
-        setIndustry(brand.industry || '');
-        setWebsite(brand.website || '');
-        setBrandDescription(brand.description || '');
-        setContactName(brand.contact_name || '');
-        setContactEmail(brand.contact_email || '');
-        setMonthlyBudgetRange(brand.monthly_budget_range || '');
       }
 
       setLoading(false);
@@ -96,26 +101,31 @@ export default function BrandSettingsPage() {
     setSavingCompany(true);
     setCompanyToast(null);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('brands')
-      .update({
-        company_name: companyName,
-        industry,
-        website,
-        description: brandDescription,
-        contact_name: contactName,
-        contact_email: contactEmail,
-        monthly_budget_range: monthlyBudgetRange,
-      })
-      .eq('user_id', userId);
+    try {
+      const res = await fetch('/api/brands/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          industry,
+          website,
+          description: brandDescription,
+          contactName,
+          contactEmail,
+          monthlyBudgetRange,
+        }),
+      });
 
-    setSavingCompany(false);
-    if (error) {
-      setCompanyToast({ type: 'error', message: 'Failed to save company info. Please try again.' });
-    } else {
+      if (!res.ok) {
+        throw new Error('Failed to save company info.');
+      }
+
       setCompanyToast({ type: 'success', message: 'Company information saved!' });
       setTimeout(() => setCompanyToast(null), 4000);
+    } catch {
+      setCompanyToast({ type: 'error', message: 'Failed to save company info. Please try again.' });
+    } finally {
+      setSavingCompany(false);
     }
   }
 
@@ -124,18 +134,23 @@ export default function BrandSettingsPage() {
     setSavingAccount(true);
     setAccountToast(null);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: fullName })
-      .eq('id', userId);
+    try {
+      const res = await fetch('/api/profiles/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName }),
+      });
 
-    setSavingAccount(false);
-    if (error) {
-      setAccountToast({ type: 'error', message: 'Failed to update account. Please try again.' });
-    } else {
+      if (!res.ok) {
+        throw new Error('Failed to update account.');
+      }
+
       setAccountToast({ type: 'success', message: 'Account updated successfully!' });
       setTimeout(() => setAccountToast(null), 4000);
+    } catch {
+      setAccountToast({ type: 'error', message: 'Failed to update account. Please try again.' });
+    } finally {
+      setSavingAccount(false);
     }
   }
 
@@ -152,17 +167,27 @@ export default function BrandSettingsPage() {
     setSavingPassword(true);
     setPasswordToast(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    try {
+      const res = await fetch('/api/auth/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
 
-    setSavingPassword(false);
-    if (error) {
-      setPasswordToast({ type: 'error', message: error.message || 'Failed to update password.' });
-    } else {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to update password.');
+      }
+
       setPasswordToast({ type: 'success', message: 'Password updated successfully!' });
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordToast(null), 4000);
+    } catch (err: any) {
+      setPasswordToast({ type: 'error', message: err.message || 'Failed to update password.' });
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -392,6 +417,17 @@ export default function BrandSettingsPage() {
             )}
 
             <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
+                  placeholder="Enter current password"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                 <input

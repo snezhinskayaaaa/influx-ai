@@ -1,77 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-
-interface Influencer {
-  id: string;
-  handle: string;
-  instagram_followers: number | null;
-  tiktok_followers: number | null;
-  price_per_post: number | null;
-  niche: string[] | null;
-}
 
 export default function NewCampaignPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [brandId, setBrandId] = useState('');
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [toast, setToast] = useState<{ type: 'error'; message: string } | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedInfluencer, setSelectedInfluencer] = useState('');
-  const [budget, setBudget] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
+  const [desiredInfluencerCount, setDesiredInfluencerCount] = useState('1');
   const [deliverables, setDeliverables] = useState('');
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const { data: brand } = await supabase
-        .from('brands')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!brand) {
-        router.push('/brands/signup');
-        return;
-      }
-      setBrandId(brand.id);
-
-      const { data: influencerData } = await supabase
-        .from('influencers')
-        .select('id, handle, instagram_followers, tiktok_followers, price_per_post, niche')
-        .eq('status', 'approved');
-
-      setInfluencers(influencerData || []);
-      setLoading(false);
-    }
-    load();
-  }, [router]);
-
-  const budgetCents = budget ? Math.round(parseFloat(budget) * 100) : 0;
-  const platformFee = Math.round(budgetCents * 0.2);
-  const influencerPayout = budgetCents - platformFee;
-
-  function formatFollowers(n: number | null) {
-    if (!n) return null;
-    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
-    return String(n);
-  }
+  const budgetMinCents = budgetMin ? Math.round(parseFloat(budgetMin) * 100) : 0;
+  const budgetMaxCents = budgetMax ? Math.round(parseFloat(budgetMax) * 100) : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,12 +25,16 @@ export default function NewCampaignPage() {
       setToast({ type: 'error', message: 'Title is required.' });
       return;
     }
-    if (!selectedInfluencer) {
-      setToast({ type: 'error', message: 'Please select an influencer.' });
+    if (!budgetMin || parseFloat(budgetMin) <= 0) {
+      setToast({ type: 'error', message: 'Please enter a valid minimum budget.' });
       return;
     }
-    if (!budget || parseFloat(budget) <= 0) {
-      setToast({ type: 'error', message: 'Please enter a valid budget.' });
+    if (!budgetMax || parseFloat(budgetMax) <= 0) {
+      setToast({ type: 'error', message: 'Please enter a valid maximum budget.' });
+      return;
+    }
+    if (budgetMinCents > budgetMaxCents) {
+      setToast({ type: 'error', message: 'Minimum budget cannot exceed maximum budget.' });
       return;
     }
 
@@ -96,35 +46,31 @@ export default function NewCampaignPage() {
       .map((d) => d.trim())
       .filter(Boolean);
 
-    const supabase = createClient();
-    const { error } = await supabase.from('campaigns').insert({
-      brand_id: brandId,
-      influencer_id: selectedInfluencer,
-      title: title.trim(),
-      description: description.trim(),
-      deliverables: deliverablesList,
-      budget: budgetCents,
-      platform_fee: platformFee,
-      influencer_payout: influencerPayout,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      status: 'draft',
-    });
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          budgetMin: budgetMinCents,
+          budgetMax: budgetMaxCents,
+          desiredInfluencerCount: parseInt(desiredInfluencerCount) || 1,
+          deliverables: deliverablesList,
+        }),
+      });
 
-    setSaving(false);
-    if (error) {
-      setToast({ type: 'error', message: error.message || 'Failed to create campaign. Please try again.' });
-    } else {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to create campaign. Please try again.');
+      }
+
       router.push('/dashboard/brand/campaigns');
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to create campaign. Please try again.' });
+    } finally {
+      setSaving(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
   }
 
   return (
@@ -207,39 +153,17 @@ export default function NewCampaignPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Influencer <span className="text-red-500">*</span>
+                  Desired Influencer Count
                 </label>
-                {influencers.length === 0 ? (
-                  <div className="border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-500 text-sm">
-                    No approved influencers available yet.
-                  </div>
-                ) : (
-                  <select
-                    required
-                    value={selectedInfluencer}
-                    onChange={(e) => setSelectedInfluencer(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
-                  >
-                    <option value="">Choose an influencer...</option>
-                    {influencers.map((inf) => {
-                      const followers =
-                        formatFollowers(inf.instagram_followers) ||
-                        formatFollowers(inf.tiktok_followers) ||
-                        null;
-                      const price = inf.price_per_post
-                        ? `$${(inf.price_per_post / 100).toLocaleString()}/post`
-                        : null;
-                      const parts = ['@' + inf.handle];
-                      if (followers) parts.push(followers + ' followers');
-                      if (price) parts.push(price);
-                      return (
-                        <option key={inf.id} value={inf.id}>
-                          {parts.join(' · ')}
-                        </option>
-                      );
-                    })}
-                  </select>
-                )}
+                <input
+                  type="number"
+                  min="1"
+                  value={desiredInfluencerCount}
+                  onChange={(e) => setDesiredInfluencerCount(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
+                  placeholder="1"
+                />
+                <p className="text-xs text-gray-400 mt-1">How many influencers you want for this campaign</p>
               </div>
 
               <div>
@@ -257,71 +181,55 @@ export default function NewCampaignPage() {
             </div>
           </div>
 
-          {/* Budget & Dates */}
+          {/* Budget */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-6">Budget & Timeline</h2>
+            <h2 className="text-xl font-bold mb-6">Budget Range</h2>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Budget ($) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  step="0.01"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
-                  placeholder="0.00"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Budget Min ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    step="0.01"
+                    value={budgetMin}
+                    onChange={(e) => setBudgetMin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Budget Max ($) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    step="0.01"
+                    value={budgetMax}
+                    onChange={(e) => setBudgetMax(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
-              {/* Fee Breakdown */}
-              {budget && parseFloat(budget) > 0 && (
+              {/* Budget Summary */}
+              {budgetMin && budgetMax && parseFloat(budgetMin) > 0 && parseFloat(budgetMax) > 0 && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Fee Breakdown</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Total Budget</span>
-                      <span className="font-medium text-gray-900">${parseFloat(budget).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Platform Fee (20%)</span>
-                      <span className="font-medium text-warning-orange">
-                        ${(platformFee / 100).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
-                      <span className="font-medium text-gray-700">Influencer Payout (80%)</span>
-                      <span className="font-bold text-deep-purple">
-                        ${(influencerPayout / 100).toFixed(2)}
-                      </span>
-                    </div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Budget Summary</h3>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Budget range</span>
+                    <span className="font-bold text-deep-purple">
+                      ${parseFloat(budgetMin).toFixed(2)} - ${parseFloat(budgetMax).toFixed(2)}
+                    </span>
                   </div>
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 

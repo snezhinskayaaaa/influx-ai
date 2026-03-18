@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Sparkles, CheckCircle2, Instagram, Award, DollarSign, ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -32,37 +31,27 @@ export default function InfluencerSignupPage() {
     setError('');
 
     try {
-      const supabase = createClient();
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          role: 'INFLUENCER',
+          handle: formData.handle,
+          bio: formData.bio,
+          instagramHandle: formData.instagramHandle,
+          instagramFollowers: parseInt(formData.instagramFollowers) || 0,
+          tiktokHandle: formData.tiktokHandle,
+          tiktokFollowers: parseInt(formData.tiktokFollowers) || 0,
+        }),
       });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
-
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: authData.user.id,
-        email: formData.email,
-        full_name: formData.fullName,
-        role: 'influencer',
-      });
-
-      if (profileError) throw profileError;
-
-      const { error: influencerError } = await supabase.from('influencers').insert({
-        user_id: authData.user.id,
-        handle: formData.handle,
-        bio: formData.bio,
-        instagram_handle: formData.instagramHandle,
-        instagram_followers: parseInt(formData.instagramFollowers) || 0,
-        tiktok_handle: formData.tiktokHandle,
-        tiktok_followers: parseInt(formData.tiktokFollowers) || 0,
-        status: 'pending',
-      });
-
-      if (influencerError) throw influencerError;
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Signup failed');
+        return;
+      }
 
       router.push('/dashboard/influencer');
     } catch (error: any) {

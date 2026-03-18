@@ -132,7 +132,7 @@ export default function PrivacyPage() {
                 <li>
                   <strong className="text-gray-700">Service Providers:</strong> We share data with
                   trusted third-party vendors who assist in operating the Platform, including cloud
-                  hosting (Supabase), payment processors, analytics providers, and email delivery
+                  hosting (Railway), payment processors, analytics providers, and email delivery
                   services. These vendors are contractually bound to use your data only to provide
                   services to us.
                 </li>
@@ -273,9 +273,9 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc list-outside ml-6 space-y-2 text-gray-600">
                 <li>
-                  <strong className="text-gray-700">Supabase:</strong> Our primary database and
-                  authentication infrastructure provider. Supabase processes and stores account data,
-                  campaign data, and Platform records on our behalf. Data is stored on servers in
+                  <strong className="text-gray-700">Railway:</strong> Our primary hosting and
+                  database infrastructure provider. Railway hosts our application and PostgreSQL
+                  database. Data is stored on secure servers in
                   compliance with applicable data protection standards.
                 </li>
                 <li>

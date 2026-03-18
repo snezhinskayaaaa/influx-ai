@@ -2,20 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 function statusBadge(status: string) {
   switch (status) {
-    case 'active':
+    case 'ACTIVE':
       return 'bg-green-100 text-green-800';
-    case 'completed':
+    case 'COMPLETED':
       return 'bg-gray-200 text-gray-700';
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'cancelled':
+    case 'CANCELLED':
       return 'bg-red-100 text-red-800';
-    case 'draft':
+    case 'DRAFT':
     default:
       return 'bg-gray-100 text-gray-600';
   }
@@ -33,39 +30,34 @@ export default function BrandCampaignsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
+      try {
+        const res = await fetch('/api/campaigns');
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.push('/auth/login');
+            return;
+          }
+          throw new Error('Failed to fetch campaigns');
+        }
+        const data = await res.json();
+        setCampaigns(data.campaigns || []);
+      } catch {
+        setCampaigns([]);
+      } finally {
+        setLoading(false);
       }
-
-      const { data: brand } = await supabase
-        .from('brands')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!brand) {
-        router.push('/brands/signup');
-        return;
-      }
-
-      const { data: campaignData } = await supabase
-        .from('campaigns')
-        .select('*, influencers(handle, instagram_followers)')
-        .eq('brand_id', brand.id)
-        .order('created_at', { ascending: false });
-
-      setCampaigns(campaignData || []);
-      setLoading(false);
     }
     load();
   }, [router]);
 
-  const totalSpent = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
-  const activeCampaigns = campaigns.filter((c) => c.status === 'active').length;
-  const completedCampaigns = campaigns.filter((c) => c.status === 'completed').length;
+  const totalSpent = campaigns.reduce((sum, c) => {
+    const completedCollabSpend = (c.collaborations || [])
+      .filter((col: any) => col.status === 'COMPLETED')
+      .reduce((s: number, col: any) => s + (col.agreedPrice || 0), 0);
+    return sum + completedCollabSpend;
+  }, 0);
+  const activeCampaigns = campaigns.filter((c) => c.status === 'ACTIVE').length;
+  const completedCampaigns = campaigns.filter((c) => c.status === 'COMPLETED').length;
 
   if (loading) {
     return (
@@ -164,12 +156,10 @@ export default function BrandCampaignsPage() {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Campaign</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Influencer</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Budget</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Platform Fee</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Influencer Payout</th>
+                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Budget Range</th>
+                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Collaborations</th>
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Status</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Dates</th>
+                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -184,46 +174,25 @@ export default function BrandCampaignsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {campaign.influencers ? (
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              @{campaign.influencers.handle}
-                            </div>
-                            {campaign.influencers.instagram_followers > 0 && (
-                              <div className="text-xs text-gray-500">
-                                {(campaign.influencers.instagram_followers / 1000).toFixed(0)}K followers
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          ${((campaign.budget || 0) / 100).toLocaleString()}
+                          ${((campaign.budgetMin || 0) / 100).toLocaleString()} - ${((campaign.budgetMax || 0) / 100).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-600">
-                          ${((campaign.platform_fee || 0) / 100).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-deep-purple">
-                          ${((campaign.influencer_payout || 0) / 100).toLocaleString()}
+                          {campaign._count?.collaborations ?? (campaign.collaborations?.length ?? 0)} collaboration{(campaign._count?.collaborations ?? campaign.collaborations?.length ?? 0) !== 1 ? 's' : ''}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span
                           className={`text-xs px-2 py-1 rounded font-medium ${statusBadge(campaign.status)}`}
                         >
-                          {campaign.status}
+                          {campaign.status.toLowerCase()}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-xs text-gray-600">
-                          {formatDate(campaign.start_date)} — {formatDate(campaign.end_date)}
+                          {formatDate(campaign.createdAt)}
                         </div>
                       </td>
                     </tr>

@@ -2,31 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { Influencer, InfluencerStatus } from '@/types/database';
 
-type InfluencerWithProfile = Influencer & {
-  profiles: { email: string; full_name: string | null } | null;
+type InfluencerStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+type InfluencerWithProfile = {
+  id: string;
+  handle: string;
+  instagramFollowers: number;
+  tiktokFollowers: number;
+  status: InfluencerStatus;
+  createdAt: string;
+  profile: { email: string; fullName: string | null } | null;
 };
 
 type StatusFilter = 'all' | InfluencerStatus;
 
 const STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: 'All', value: 'all' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Approved', value: 'APPROVED' },
+  { label: 'Rejected', value: 'REJECTED' },
 ];
 
 function StatusBadge({ status }: { status: InfluencerStatus }) {
   const classes: Record<InfluencerStatus, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
+    PENDING: 'bg-yellow-100 text-yellow-800',
+    APPROVED: 'bg-green-100 text-green-800',
+    REJECTED: 'bg-red-100 text-red-800',
   };
   return (
     <span className={`text-xs px-2 py-1 rounded font-medium ${classes[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -50,14 +56,14 @@ export default function InfluencerManagementPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   async function fetchInfluencers() {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('influencers')
-      .select('*, profiles(email, full_name)')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setInfluencers(data as InfluencerWithProfile[]);
+    try {
+      const res = await fetch('/api/admin/influencers');
+      if (res.ok) {
+        const data = await res.json();
+        setInfluencers(data.influencers || []);
+      }
+    } catch {
+      // silently fail
     }
     setLoading(false);
   }
@@ -68,16 +74,20 @@ export default function InfluencerManagementPage() {
 
   async function updateStatus(id: string, status: InfluencerStatus) {
     setActionLoading(id + status);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('influencers')
-      .update({ status })
-      .eq('id', id);
+    try {
+      const res = await fetch(`/api/admin/influencers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
 
-    if (!error) {
-      setInfluencers((prev) =>
-        prev.map((inf) => (inf.id === id ? { ...inf, status } : inf))
-      );
+      if (res.ok) {
+        setInfluencers((prev) =>
+          prev.map((inf) => (inf.id === id ? { ...inf, status } : inf))
+        );
+      }
+    } catch {
+      // silently fail
     }
     setActionLoading(null);
   }
@@ -175,7 +185,7 @@ export default function InfluencerManagementPage() {
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                       No influencers found
-                      {activeFilter !== 'all' ? ` with status "${activeFilter}"` : ''}.
+                      {activeFilter !== 'all' ? ` with status "${activeFilter.toLowerCase()}"` : ''}.
                     </td>
                   </tr>
                 ) : (
@@ -188,45 +198,45 @@ export default function InfluencerManagementPage() {
                         @{influencer.handle}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {influencer.profiles?.email ?? '—'}
+                        {influencer.profile?.email ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {influencer.instagram_followers > 0
-                          ? `${(influencer.instagram_followers / 1000).toFixed(1)}K`
+                        {influencer.instagramFollowers > 0
+                          ? `${(influencer.instagramFollowers / 1000).toFixed(1)}K`
                           : '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {influencer.tiktok_followers > 0
-                          ? `${(influencer.tiktok_followers / 1000).toFixed(1)}K`
+                        {influencer.tiktokFollowers > 0
+                          ? `${(influencer.tiktokFollowers / 1000).toFixed(1)}K`
                           : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={influencer.status} />
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {new Date(influencer.created_at).toLocaleDateString()}
+                        {new Date(influencer.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
-                          {influencer.status !== 'approved' && (
+                          {influencer.status !== 'APPROVED' && (
                             <button
-                              onClick={() => updateStatus(influencer.id, 'approved')}
-                              disabled={actionLoading === influencer.id + 'approved'}
+                              onClick={() => updateStatus(influencer.id, 'APPROVED')}
+                              disabled={actionLoading === influencer.id + 'APPROVED'}
                               className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded hover:bg-green-200 disabled:opacity-50 transition-colors"
                             >
-                              {actionLoading === influencer.id + 'approved'
-                                ? 'Saving…'
+                              {actionLoading === influencer.id + 'APPROVED'
+                                ? 'Saving...'
                                 : 'Approve'}
                             </button>
                           )}
-                          {influencer.status !== 'rejected' && (
+                          {influencer.status !== 'REJECTED' && (
                             <button
-                              onClick={() => updateStatus(influencer.id, 'rejected')}
-                              disabled={actionLoading === influencer.id + 'rejected'}
+                              onClick={() => updateStatus(influencer.id, 'REJECTED')}
+                              disabled={actionLoading === influencer.id + 'REJECTED'}
                               className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded hover:bg-red-200 disabled:opacity-50 transition-colors"
                             >
-                              {actionLoading === influencer.id + 'rejected'
-                                ? 'Saving…'
+                              {actionLoading === influencer.id + 'REJECTED'
+                                ? 'Saving...'
                                 : 'Reject'}
                             </button>
                           )}

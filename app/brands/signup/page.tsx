@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Sparkles, Search, TrendingUp, Shield, CheckCircle2, Building2, ArrowRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -29,36 +28,27 @@ export default function BrandSignupPage() {
     setError('');
 
     try {
-      const supabase = createClient();
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          role: 'BRAND',
+          companyName: formData.companyName,
+          industry: formData.industry,
+          website: formData.website,
+          description: formData.description,
+          contactName: formData.fullName,
+          contactEmail: formData.email,
+        }),
       });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
-
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: authData.user.id,
-        email: formData.email,
-        full_name: formData.fullName,
-        role: 'brand',
-      });
-
-      if (profileError) throw profileError;
-
-      const { error: brandError } = await supabase.from('brands').insert({
-        user_id: authData.user.id,
-        company_name: formData.companyName,
-        industry: formData.industry,
-        website: formData.website,
-        description: formData.description,
-        contact_name: formData.fullName,
-        contact_email: formData.email,
-      });
-
-      if (brandError) throw brandError;
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Signup failed');
+        return;
+      }
 
       router.push('/dashboard/brand');
     } catch (error: any) {

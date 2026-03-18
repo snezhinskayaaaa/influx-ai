@@ -1,58 +1,50 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
+import prisma from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 function statusBadge(status: string) {
   switch (status) {
-    case 'active':
+    case 'AGREED':
+    case 'IN_PROGRESS':
       return 'bg-green-100 text-green-800';
-    case 'completed':
+    case 'COMPLETED':
       return 'bg-gray-200 text-gray-700';
-    case 'pending':
+    case 'APPLIED':
+    case 'NEGOTIATING':
       return 'bg-yellow-100 text-yellow-800';
-    case 'cancelled':
+    case 'CANCELLED':
       return 'bg-red-100 text-red-800';
-    case 'draft':
     default:
       return 'bg-gray-100 text-gray-600';
   }
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function formatDate(date: Date | null) {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default async function InfluencerCampaignsPage() {
-  const supabase = await createClient();
+  const user = await getCurrentUser()
+  if (!user) redirect('/auth/login')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const influencer = await prisma.influencer.findUnique({
+    where: { userId: user.userId },
+  })
+  if (!influencer) redirect('/influencers/signup')
 
-  if (!user) {
-    redirect('/auth/login');
-  }
+  const collaborations = await prisma.collaboration.findMany({
+    where: { influencerId: influencer.id },
+    include: { campaign: { include: { brand: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
 
-  const { data: influencer } = await supabase
-    .from('influencers')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!influencer) {
-    redirect('/influencers/signup');
-  }
-
-  const { data: campaigns } = await supabase
-    .from('campaigns')
-    .select('*, brands(company_name, industry)')
-    .eq('influencer_id', influencer.id)
-    .order('created_at', { ascending: false });
-
-  const totalEarnings = campaigns?.reduce((sum, c) => sum + (c.influencer_payout || 0), 0) || 0;
-  const activeCampaigns = campaigns?.filter((c) => c.status === 'active').length || 0;
-  const completedCampaigns = campaigns?.filter((c) => c.status === 'completed').length || 0;
+  const totalEarnings = collaborations
+    .filter(c => c.status === 'COMPLETED')
+    .reduce((sum, c) => sum + (c.agreedPrice || 0), 0)
+  const activeCollaborations = collaborations.filter(c => ['AGREED', 'IN_PROGRESS'].includes(c.status)).length
+  const completedCollaborations = collaborations.filter(c => c.status === 'COMPLETED').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -100,22 +92,22 @@ export default async function InfluencerCampaignsPage() {
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600 mb-1">Active Campaigns</div>
-            <div className="text-3xl font-bold text-success-green">{activeCampaigns}</div>
+            <div className="text-sm font-medium text-gray-600 mb-1">Active Collaborations</div>
+            <div className="text-3xl font-bold text-success-green">{activeCollaborations}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-600 mb-1">Completed</div>
-            <div className="text-3xl font-bold text-gray-900">{completedCampaigns}</div>
+            <div className="text-3xl font-bold text-gray-900">{completedCollaborations}</div>
           </div>
         </div>
 
-        {/* Campaigns List */}
+        {/* Collaborations List */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold">All Campaigns</h2>
           </div>
 
-          {!campaigns || campaigns.length === 0 ? (
+          {collaborations.length === 0 ? (
             <div className="p-12 text-center">
               <div className="text-5xl mb-4">📋</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
@@ -130,53 +122,48 @@ export default async function InfluencerCampaignsPage() {
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Campaign</th>
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Brand</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Budget</th>
-                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Your Payout</th>
+                    <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Agreed Price</th>
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Status</th>
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Dates</th>
                     <th className="text-left text-sm font-medium text-gray-600 px-6 py-3">Deliverables</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {campaigns.map((campaign: any) => (
-                    <tr key={campaign.id} className="hover:bg-gray-50">
+                  {collaborations.map((collaboration) => (
+                    <tr key={collaboration.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{campaign.title}</div>
+                        <div className="font-medium text-gray-900">{collaboration.campaign.title}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {campaign.brands?.company_name || '—'}
+                          {collaboration.campaign.brand.companyName}
                         </div>
-                        {campaign.brands?.industry && (
-                          <div className="text-xs text-gray-500">{campaign.brands.industry}</div>
+                        {collaboration.campaign.brand.industry && (
+                          <div className="text-xs text-gray-500">{collaboration.campaign.brand.industry}</div>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          ${((campaign.budget || 0) / 100).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="text-sm font-medium text-influx-blue">
-                          ${((campaign.influencer_payout || 0) / 100).toLocaleString()}
+                          ${((collaboration.agreedPrice || collaboration.proposedPrice) / 100).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`text-xs px-2 py-1 rounded font-medium ${statusBadge(campaign.status)}`}
+                          className={`text-xs px-2 py-1 rounded font-medium ${statusBadge(collaboration.status)}`}
                         >
-                          {campaign.status}
+                          {collaboration.status}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-xs text-gray-600">
-                          {formatDate(campaign.start_date)} — {formatDate(campaign.end_date)}
+                          {formatDate(collaboration.createdAt)}
+                          {collaboration.completedAt && ` — ${formatDate(collaboration.completedAt)}`}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {campaign.deliverables && campaign.deliverables.length > 0 ? (
+                        {collaboration.deliverables && collaboration.deliverables.length > 0 ? (
                           <ul className="text-xs text-gray-600 space-y-1">
-                            {(campaign.deliverables as string[]).map((d, i) => (
+                            {collaboration.deliverables.map((d, i) => (
                               <li key={i} className="flex items-start gap-1">
                                 <span className="text-influx-blue mt-0.5">•</span>
                                 {d}

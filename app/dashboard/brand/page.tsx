@@ -1,39 +1,46 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 import Link from 'next/link';
 
 export default async function BrandDashboard() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect('/auth/login');
   }
 
   // Get brand profile
-  const { data: brand } = await supabase
-    .from('brands')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
+  const brand = await prisma.brand.findUnique({
+    where: { userId: user.userId },
+  });
 
   if (!brand) {
     redirect('/brands/signup');
   }
 
-  // Get campaigns
-  const { data: campaigns } = await supabase
-    .from('campaigns')
-    .select('*, influencers(*)')
-    .eq('brand_id', brand.id)
-    .order('created_at', { ascending: false });
+  // Get campaigns with collaborations
+  const campaigns = await prisma.campaign.findMany({
+    where: { brandId: brand.id },
+    include: {
+      collaborations: {
+        select: { status: true, agreedPrice: true },
+      },
+      _count: {
+        select: { collaborations: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const totalSpent = campaigns?.reduce((sum, c) => sum + (c.budget || 0), 0) || 0;
-  const activeCampaigns = campaigns?.filter((c) => c.status === 'active').length || 0;
-  const completedCampaigns = campaigns?.filter((c) => c.status === 'completed').length || 0;
+  const totalSpent = campaigns.reduce((sum, c) => {
+    const completedCollabSpend = c.collaborations
+      .filter((col) => col.status === 'COMPLETED')
+      .reduce((s, col) => s + (col.agreedPrice || 0), 0);
+    return sum + completedCollabSpend;
+  }, 0);
+  const activeCampaigns = campaigns.filter((c) => c.status === 'ACTIVE').length;
+  const completedCampaigns = campaigns.filter((c) => c.status === 'COMPLETED').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,7 +77,7 @@ export default async function BrandDashboard() {
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back, {brand.company_name}!
+              Welcome back, {brand.companyName}!
             </h1>
             <p className="text-gray-600">
               Manage your campaigns and find AI influencers
@@ -118,7 +125,7 @@ export default async function BrandDashboard() {
               Total Campaigns
             </div>
             <div className="text-3xl font-bold text-gray-900">
-              {campaigns?.length || 0}
+              {campaigns.length}
             </div>
           </div>
         </div>
@@ -130,7 +137,7 @@ export default async function BrandDashboard() {
               <h2 className="text-xl font-bold">Recent Campaigns</h2>
             </div>
             <div className="p-6">
-              {!campaigns || campaigns.length === 0 ? (
+              {campaigns.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No campaigns yet</p>
                   <Link
@@ -142,7 +149,7 @@ export default async function BrandDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {campaigns.slice(0, 5).map((campaign: any) => (
+                  {campaigns.slice(0, 5).map((campaign) => (
                     <Link
                       key={campaign.id}
                       href={`/dashboard/brand/campaigns/${campaign.id}`}
@@ -152,28 +159,28 @@ export default async function BrandDashboard() {
                         <h3 className="font-medium">{campaign.title}</h3>
                         <span
                           className={`text-xs px-2 py-1 rounded ${
-                            campaign.status === 'active'
+                            campaign.status === 'ACTIVE'
                               ? 'bg-success-green text-white'
-                              : campaign.status === 'completed'
+                              : campaign.status === 'COMPLETED'
                               ? 'bg-gray-200 text-gray-700'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {campaign.status}
+                          {campaign.status.toLowerCase()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-600 mb-2">
-                        @{campaign.influencers?.handle || 'Influencer'}
+                        {campaign._count.collaborations} collaboration{campaign._count.collaborations !== 1 ? 's' : ''}
                       </div>
                       <div className="text-sm font-medium text-deep-purple">
-                        ${(campaign.budget / 100).toLocaleString()} budget
+                        ${(campaign.budgetMin / 100).toLocaleString()} - ${(campaign.budgetMax / 100).toLocaleString()} budget
                       </div>
                     </Link>
                   ))}
                 </div>
               )}
 
-              {campaigns && campaigns.length > 0 && (
+              {campaigns.length > 0 && (
                 <Link
                   href="/dashboard/brand/campaigns"
                   className="mt-4 block text-center text-deep-purple font-medium hover:underline"

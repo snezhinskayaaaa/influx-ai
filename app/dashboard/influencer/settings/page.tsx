@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 export default function InfluencerSettingsPage() {
@@ -10,10 +9,10 @@ export default function InfluencerSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [userId, setUserId] = useState('');
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountToast, setAccountToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
@@ -21,23 +20,15 @@ export default function InfluencerSettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const res = await fetch('/api/profiles/me');
+      if (!res.ok) {
         router.push('/auth/login');
         return;
       }
-      setUserId(user.id);
-      setEmail(user.email || '');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        setFullName(profile.full_name || '');
+      const data = await res.json();
+      if (data.profile) {
+        setEmail(data.profile.email || '');
+        setFullName(data.profile.fullName || '');
       }
       setLoading(false);
     }
@@ -49,14 +40,14 @@ export default function InfluencerSettingsPage() {
     setSavingAccount(true);
     setAccountToast(null);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: fullName })
-      .eq('id', userId);
+    const res = await fetch('/api/profiles/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName }),
+    });
 
     setSavingAccount(false);
-    if (error) {
+    if (!res.ok) {
       setAccountToast({ type: 'error', message: 'Failed to update account. Please try again.' });
     } else {
       setAccountToast({ type: 'success', message: 'Account updated successfully!' });
@@ -77,14 +68,19 @@ export default function InfluencerSettingsPage() {
     setSavingPassword(true);
     setPasswordToast(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const res = await fetch('/api/auth/password', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
 
     setSavingPassword(false);
-    if (error) {
-      setPasswordToast({ type: 'error', message: error.message || 'Failed to update password.' });
+    if (!res.ok) {
+      const data = await res.json();
+      setPasswordToast({ type: 'error', message: data.error || 'Failed to update password.' });
     } else {
       setPasswordToast({ type: 'success', message: 'Password updated successfully!' });
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordToast(null), 4000);
@@ -204,6 +200,18 @@ export default function InfluencerSettingsPage() {
             )}
 
             <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-influx-blue"
+                  placeholder="Enter current password"
+                  required
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                 <input

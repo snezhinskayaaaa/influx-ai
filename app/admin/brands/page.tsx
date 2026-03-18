@@ -1,20 +1,25 @@
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Brand } from '@/types/database';
-
-type BrandWithProfile = Brand & {
-  profiles: { email: string } | null;
-};
 
 export default async function BrandManagementPage() {
-  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'ADMIN') {
+    redirect('/auth/login');
+  }
 
-  const { data: brands } = await supabase
-    .from('brands')
-    .select('*, profiles(email)')
-    .order('created_at', { ascending: false });
-
-  const brandList = (brands ?? []) as BrandWithProfile[];
+  const brandList = await prisma.brand.findMany({
+    include: {
+      profile: {
+        select: { email: true },
+      },
+      _count: {
+        select: { campaigns: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,7 +73,7 @@ export default async function BrandManagementPage() {
             <div className="text-3xl font-bold text-success-green">
               {
                 brandList.filter((b) => {
-                  const d = new Date(b.created_at);
+                  const d = new Date(b.createdAt);
                   const now = new Date();
                   return (
                     d.getMonth() === now.getMonth() &&
@@ -95,6 +100,7 @@ export default async function BrandManagementPage() {
                   <th className="px-4 py-3 font-semibold text-gray-600">Industry</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Website</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Budget Range</th>
+                  <th className="px-4 py-3 font-semibold text-gray-600">Campaigns</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Contact</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Registered</th>
                   <th className="px-4 py-3 font-semibold text-gray-600">Actions</th>
@@ -103,7 +109,7 @@ export default async function BrandManagementPage() {
               <tbody>
                 {brandList.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
                       No brands registered yet.
                     </td>
                   </tr>
@@ -114,10 +120,10 @@ export default async function BrandManagementPage() {
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        {brand.company_name}
+                        {brand.companyName}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {brand.profiles?.email ?? '—'}
+                        {brand.profile?.email ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         {brand.industry ? (
@@ -143,16 +149,19 @@ export default async function BrandManagementPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {brand.monthly_budget_range ?? '—'}
+                        {brand.monthlyBudgetRange ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        <div>{brand.contact_name ?? '—'}</div>
-                        {brand.contact_email && (
-                          <div className="text-xs text-gray-400">{brand.contact_email}</div>
+                        {brand._count.campaigns}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        <div>{brand.contactName ?? '—'}</div>
+                        {brand.contactEmail && (
+                          <div className="text-xs text-gray-400">{brand.contactEmail}</div>
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {new Date(brand.created_at).toLocaleDateString()}
+                        {new Date(brand.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <Link

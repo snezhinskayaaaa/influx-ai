@@ -1,50 +1,50 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 import Link from 'next/link';
 
 export default async function AdminDashboard() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect('/auth/login');
   }
 
   // Check if user is admin
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
+  if (user.role !== 'ADMIN') {
     redirect('/dashboard');
   }
 
   // Get all influencers
-  const { data: influencers } = await supabase
-    .from('influencers')
-    .select('*, profiles(*)')
-    .order('created_at', { ascending: false });
+  const influencers = await prisma.influencer.findMany({
+    include: { profile: true },
+    orderBy: { createdAt: 'desc' },
+  });
 
   // Get all brands
-  const { data: brands } = await supabase
-    .from('brands')
-    .select('*, profiles(*)')
-    .order('created_at', { ascending: false });
+  const brands = await prisma.brand.findMany({
+    include: { profile: true },
+    orderBy: { createdAt: 'desc' },
+  });
 
   // Get all campaigns
-  const { data: campaigns } = await supabase
-    .from('campaigns')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const campaigns = await prisma.campaign.findMany({
+    include: {
+      _count: {
+        select: { collaborations: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const pendingInfluencers = influencers?.filter((i) => i.status === 'pending').length || 0;
-  const approvedInfluencers = influencers?.filter((i) => i.status === 'approved').length || 0;
-  const totalRevenue = campaigns?.reduce((sum, c) => sum + (c.platform_fee || 0), 0) || 0;
+  // Total revenue: sum of fees from all transactions
+  const feeAggregate = await prisma.transaction.aggregate({
+    _sum: { fee: true },
+  });
+  const totalRevenue = feeAggregate._sum.fee || 0;
+
+  const pendingInfluencers = influencers.filter((i) => i.status === 'PENDING').length;
+  const approvedInfluencers = influencers.filter((i) => i.status === 'APPROVED').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,7 +88,7 @@ export default async function AdminDashboard() {
             <div className="text-3xl font-bold text-success-green">
               ${(totalRevenue / 100).toLocaleString()}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Platform fees (20%)</div>
+            <div className="text-xs text-gray-500 mt-1">Platform fees</div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
@@ -96,7 +96,7 @@ export default async function AdminDashboard() {
               Influencers
             </div>
             <div className="text-3xl font-bold text-influx-blue">
-              {influencers?.length || 0}
+              {influencers.length}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {approvedInfluencers} approved
@@ -108,7 +108,7 @@ export default async function AdminDashboard() {
               Brands
             </div>
             <div className="text-3xl font-bold text-deep-purple">
-              {brands?.length || 0}
+              {brands.length}
             </div>
           </div>
 
@@ -117,7 +117,7 @@ export default async function AdminDashboard() {
               Campaigns
             </div>
             <div className="text-3xl font-bold text-gray-900">
-              {campaigns?.length || 0}
+              {campaigns.length}
             </div>
           </div>
         </div>
@@ -150,11 +150,11 @@ export default async function AdminDashboard() {
               </Link>
             </div>
             <div className="p-6">
-              {!influencers || influencers.length === 0 ? (
+              {influencers.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No influencers yet</p>
               ) : (
                 <div className="space-y-4">
-                  {influencers.slice(0, 5).map((influencer: any) => (
+                  {influencers.slice(0, 5).map((influencer) => (
                     <div
                       key={influencer.id}
                       className="border border-gray-200 rounded-lg p-4"
@@ -163,30 +163,30 @@ export default async function AdminDashboard() {
                         <div>
                           <h3 className="font-medium">@{influencer.handle}</h3>
                           <p className="text-sm text-gray-600">
-                            {influencer.profiles?.email}
+                            {influencer.profile?.email}
                           </p>
                         </div>
                         <span
                           className={`text-xs px-2 py-1 rounded ${
-                            influencer.status === 'approved'
+                            influencer.status === 'APPROVED'
                               ? 'bg-success-green text-white'
-                              : influencer.status === 'pending'
+                              : influencer.status === 'PENDING'
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {influencer.status}
+                          {influencer.status.toLowerCase()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        {influencer.instagram_followers > 0 && (
+                        {influencer.instagramFollowers > 0 && (
                           <span>
-                            {(influencer.instagram_followers / 1000).toFixed(0)}K IG
+                            {(influencer.instagramFollowers / 1000).toFixed(0)}K IG
                           </span>
                         )}
-                        {influencer.tiktok_followers > 0 && (
+                        {influencer.tiktokFollowers > 0 && (
                           <span className="ml-2">
-                            {(influencer.tiktok_followers / 1000).toFixed(0)}K TT
+                            {(influencer.tiktokFollowers / 1000).toFixed(0)}K TT
                           </span>
                         )}
                       </div>
@@ -209,18 +209,18 @@ export default async function AdminDashboard() {
               </Link>
             </div>
             <div className="p-6">
-              {!brands || brands.length === 0 ? (
+              {brands.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No brands yet</p>
               ) : (
                 <div className="space-y-4">
-                  {brands.slice(0, 5).map((brand: any) => (
+                  {brands.slice(0, 5).map((brand) => (
                     <div
                       key={brand.id}
                       className="border border-gray-200 rounded-lg p-4"
                     >
-                      <h3 className="font-medium mb-1">{brand.company_name}</h3>
+                      <h3 className="font-medium mb-1">{brand.companyName}</h3>
                       <p className="text-sm text-gray-600 mb-1">
-                        {brand.profiles?.email}
+                        {brand.profile?.email}
                       </p>
                       {brand.industry && (
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
@@ -247,11 +247,11 @@ export default async function AdminDashboard() {
             </Link>
           </div>
           <div className="p-6">
-            {!campaigns || campaigns.length === 0 ? (
+            {campaigns.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No campaigns yet</p>
             ) : (
               <div className="space-y-4">
-                {campaigns.slice(0, 5).map((campaign: any) => (
+                {campaigns.slice(0, 5).map((campaign) => (
                   <div
                     key={campaign.id}
                     className="border border-gray-200 rounded-lg p-4 flex justify-between items-center"
@@ -259,20 +259,19 @@ export default async function AdminDashboard() {
                     <div>
                       <h3 className="font-medium mb-1">{campaign.title}</h3>
                       <div className="text-sm text-gray-600">
-                        Budget: ${(campaign.budget / 100).toLocaleString()} • Fee:{' '}
-                        ${(campaign.platform_fee / 100).toLocaleString()}
+                        Budget: ${(campaign.budgetMin / 100).toLocaleString()} - ${(campaign.budgetMax / 100).toLocaleString()} | {campaign._count.collaborations} collaboration{campaign._count.collaborations !== 1 ? 's' : ''}
                       </div>
                     </div>
                     <span
                       className={`text-xs px-2 py-1 rounded ${
-                        campaign.status === 'active'
+                        campaign.status === 'ACTIVE'
                           ? 'bg-success-green text-white'
-                          : campaign.status === 'completed'
+                          : campaign.status === 'COMPLETED'
                           ? 'bg-gray-200 text-gray-700'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}
                     >
-                      {campaign.status}
+                      {campaign.status.toLowerCase()}
                     </span>
                   </div>
                 ))}

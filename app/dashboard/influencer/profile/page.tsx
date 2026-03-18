@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 const NICHES = ['Fashion', 'Gaming', 'Tech', 'Lifestyle', 'Beauty', 'Music', 'Sports', 'Food', 'Travel'];
@@ -57,19 +56,17 @@ export default function InfluencerProfilePage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const profileRes = await fetch('/api/profiles/me');
+      if (!profileRes.ok) {
         router.push('/auth/login');
         return;
       }
-      const { data: influencer } = await supabase
-        .from('influencers')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
 
-      if (influencer) {
+      const influencerRes = await fetch('/api/influencers/me');
+      const influencerData = await influencerRes.json();
+
+      if (influencerRes.ok && influencerData.influencer) {
+        const influencer = influencerData.influencer;
         setStatus(influencer.status || '');
         setForm({
           handle: influencer.handle || '',
@@ -77,19 +74,19 @@ export default function InfluencerProfilePage() {
           niche: influencer.niche || [],
           location: influencer.location || '',
           languages: (influencer.languages || []).join(', '),
-          instagram_handle: influencer.instagram_handle || '',
-          instagram_followers: influencer.instagram_followers ? String(influencer.instagram_followers) : '',
-          instagram_engagement: influencer.instagram_engagement ? String(influencer.instagram_engagement) : '',
-          tiktok_handle: influencer.tiktok_handle || '',
-          tiktok_followers: influencer.tiktok_followers ? String(influencer.tiktok_followers) : '',
-          tiktok_engagement: influencer.tiktok_engagement ? String(influencer.tiktok_engagement) : '',
-          youtube_handle: influencer.youtube_handle || '',
-          youtube_subscribers: influencer.youtube_subscribers ? String(influencer.youtube_subscribers) : '',
-          price_per_post: influencer.price_per_post ? String(influencer.price_per_post / 100) : '',
-          price_per_story: influencer.price_per_story ? String(influencer.price_per_story / 100) : '',
-          price_per_video: influencer.price_per_video ? String(influencer.price_per_video / 100) : '',
-          portfolio_url: influencer.portfolio_url || '',
-          past_collaborations: (influencer.past_collaborations || []).join(', '),
+          instagram_handle: influencer.instagramHandle || '',
+          instagram_followers: influencer.instagramFollowers ? String(influencer.instagramFollowers) : '',
+          instagram_engagement: influencer.instagramEngagement ? String(influencer.instagramEngagement) : '',
+          tiktok_handle: influencer.tiktokHandle || '',
+          tiktok_followers: influencer.tiktokFollowers ? String(influencer.tiktokFollowers) : '',
+          tiktok_engagement: influencer.tiktokEngagement ? String(influencer.tiktokEngagement) : '',
+          youtube_handle: influencer.youtubeHandle || '',
+          youtube_subscribers: influencer.youtubeSubscribers ? String(influencer.youtubeSubscribers) : '',
+          price_per_post: influencer.pricePerPost ? String(influencer.pricePerPost / 100) : '',
+          price_per_story: influencer.pricePerStory ? String(influencer.pricePerStory / 100) : '',
+          price_per_video: influencer.pricePerVideo ? String(influencer.pricePerVideo / 100) : '',
+          portfolio_url: influencer.portfolioUrl || '',
+          past_collaborations: (influencer.pastCollaborations || []).join(', '),
         });
       }
       setLoading(false);
@@ -111,9 +108,8 @@ export default function InfluencerProfilePage() {
     setSaving(true);
     setToast(null);
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const profileRes = await fetch('/api/profiles/me');
+    if (!profileRes.ok) {
       router.push('/auth/login');
       return;
     }
@@ -134,28 +130,29 @@ export default function InfluencerProfilePage() {
       niche: form.niche,
       location: form.location,
       languages,
-      instagram_handle: form.instagram_handle,
-      instagram_followers: form.instagram_followers ? parseInt(form.instagram_followers) : null,
-      instagram_engagement: form.instagram_engagement ? parseFloat(form.instagram_engagement) : null,
-      tiktok_handle: form.tiktok_handle,
-      tiktok_followers: form.tiktok_followers ? parseInt(form.tiktok_followers) : null,
-      tiktok_engagement: form.tiktok_engagement ? parseFloat(form.tiktok_engagement) : null,
-      youtube_handle: form.youtube_handle,
-      youtube_subscribers: form.youtube_subscribers ? parseInt(form.youtube_subscribers) : null,
-      price_per_post: form.price_per_post ? Math.round(parseFloat(form.price_per_post) * 100) : null,
-      price_per_story: form.price_per_story ? Math.round(parseFloat(form.price_per_story) * 100) : null,
-      price_per_video: form.price_per_video ? Math.round(parseFloat(form.price_per_video) * 100) : null,
-      portfolio_url: form.portfolio_url,
-      past_collaborations,
+      instagramHandle: form.instagram_handle,
+      instagramFollowers: form.instagram_followers ? parseInt(form.instagram_followers) : null,
+      instagramEngagement: form.instagram_engagement ? parseFloat(form.instagram_engagement) : null,
+      tiktokHandle: form.tiktok_handle,
+      tiktokFollowers: form.tiktok_followers ? parseInt(form.tiktok_followers) : null,
+      tiktokEngagement: form.tiktok_engagement ? parseFloat(form.tiktok_engagement) : null,
+      youtubeHandle: form.youtube_handle,
+      youtubeSubscribers: form.youtube_subscribers ? parseInt(form.youtube_subscribers) : null,
+      pricePerPost: form.price_per_post ? Math.round(parseFloat(form.price_per_post) * 100) : null,
+      pricePerStory: form.price_per_story ? Math.round(parseFloat(form.price_per_story) * 100) : null,
+      pricePerVideo: form.price_per_video ? Math.round(parseFloat(form.price_per_video) * 100) : null,
+      portfolioUrl: form.portfolio_url,
+      pastCollaborations: past_collaborations,
     };
 
-    const { error } = await supabase
-      .from('influencers')
-      .update(updateData)
-      .eq('user_id', user.id);
+    const res = await fetch('/api/influencers/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    });
 
     setSaving(false);
-    if (error) {
+    if (!res.ok) {
       setToast({ type: 'error', message: 'Failed to save profile. Please try again.' });
     } else {
       setToast({ type: 'success', message: 'Profile saved successfully!' });
@@ -209,7 +206,7 @@ export default function InfluencerProfilePage() {
         </div>
 
         {/* Status Banner */}
-        {status === 'pending' && (
+        {status === 'PENDING' && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <div className="flex items-start">
               <span className="text-2xl mr-3">⏳</span>
@@ -222,7 +219,7 @@ export default function InfluencerProfilePage() {
             </div>
           </div>
         )}
-        {status === 'approved' && (
+        {status === 'APPROVED' && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-start">
               <span className="text-2xl mr-3">✓</span>
@@ -235,7 +232,7 @@ export default function InfluencerProfilePage() {
             </div>
           </div>
         )}
-        {status === 'rejected' && (
+        {status === 'REJECTED' && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-start">
               <span className="text-2xl mr-3">✗</span>
