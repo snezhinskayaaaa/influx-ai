@@ -5,9 +5,10 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  if (!process.env.DATABASE_URL) {
+  const url = process.env.DATABASE_URL
+  if (!url) {
     // During build time, DATABASE_URL may not be available
-    // Return a proxy that throws on actual usage
+    // Return a proxy that throws on actual database usage
     return new Proxy({} as PrismaClient, {
       get(target, prop) {
         if (prop === 'then' || prop === 'catch' || typeof prop === 'symbol') {
@@ -17,7 +18,7 @@ function createPrismaClient() {
       },
     })
   }
-  return new PrismaClient()
+  return new PrismaClient({ datasourceUrl: url })
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient()
