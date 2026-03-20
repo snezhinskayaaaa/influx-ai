@@ -1,24 +1,28 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function createPrismaClient() {
+function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL
   if (!url) {
-    // During build time, DATABASE_URL may not be available
-    // Return a proxy that throws on actual database usage
+    // During build time, DATABASE_URL is not available
     return new Proxy({} as PrismaClient, {
-      get(target, prop) {
+      get(_target, prop) {
         if (prop === 'then' || prop === 'catch' || typeof prop === 'symbol') {
           return undefined
         }
-        throw new Error('DATABASE_URL is not set. Cannot connect to database.')
+        // Return a no-op function for any method call during build
+        return () => Promise.resolve(null)
       },
     })
   }
-  return new PrismaClient({ datasourceUrl: url })
+  const pool = new Pool({ connectionString: url })
+  const adapter = new PrismaPg(pool)
+  return new PrismaClient({ adapter })
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient()
