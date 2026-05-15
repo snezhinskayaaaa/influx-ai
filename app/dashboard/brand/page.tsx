@@ -86,7 +86,7 @@ export default async function BrandDashboard() {
             </p>
           </div>
           <Link
-            href="/browse"
+            href="/dashboard/brand/campaigns/new"
             className="bg-deep-purple text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium"
           >
             + New Campaign

@@ -198,9 +198,9 @@ export default function InfluencerSignupPage() {
                       onChange={(e) => updateFormData('password', e.target.value)}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-influx-blue transition"
                       placeholder="••••••••"
-                      minLength={6}
+                      minLength={8}
                     />
-                    <p className="mt-2 text-xs text-gray-500">At least 6 characters</p>
+                    <p className="mt-2 text-xs text-gray-500">At least 8 characters</p>
                   </div>
 
                   <div>

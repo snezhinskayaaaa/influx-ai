@@ -160,8 +160,8 @@ export default function BrandSettingsPage() {
       setPasswordToast({ type: 'error', message: 'Passwords do not match.' });
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordToast({ type: 'error', message: 'Password must be at least 6 characters.' });
+    if (newPassword.length < 8) {
+      setPasswordToast({ type: 'error', message: 'Password must be at least 8 characters.' });
       return;
     }
     setSavingPassword(true);
@@ -436,7 +436,7 @@ export default function BrandSettingsPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
                   placeholder="Enter new password"
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 
@@ -448,7 +448,7 @@ export default function BrandSettingsPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-deep-purple"
                   placeholder="Confirm new password"
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 

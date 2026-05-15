@@ -45,7 +45,7 @@ export default function Footer() {
             <h4 className="font-bold text-gray-900 mb-4">Product</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="#how-it-works" className="text-gray-600 hover:text-influx-blue transition">
+                <Link href="/#how-it-works" className="text-gray-600 hover:text-influx-blue transition">
                   How it Works
                 </Link>
               </li>
@@ -55,30 +55,30 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#pricing" className="text-gray-600 hover:text-influx-blue transition">
+                <Link href="/pricing" className="text-gray-600 hover:text-influx-blue transition">
                   Pricing
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Company */}
+          {/* Get Started */}
           <div>
-            <h4 className="font-bold text-gray-900 mb-4">Company</h4>
+            <h4 className="font-bold text-gray-900 mb-4">Get Started</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/about" className="text-gray-600 hover:text-influx-blue transition">
-                  About
+                <Link href="/influencers/signup" className="text-gray-600 hover:text-influx-blue transition">
+                  Join as Influencer
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-gray-600 hover:text-influx-blue transition">
-                  Blog
+                <Link href="/brands/signup" className="text-gray-600 hover:text-influx-blue transition">
+                  Join as Brand
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-600 hover:text-influx-blue transition">
-                  Contact
+                <Link href="/auth/login" className="text-gray-600 hover:text-influx-blue transition">
+                  Sign In
                 </Link>
               </li>
             </ul>

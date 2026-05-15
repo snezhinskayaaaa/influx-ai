@@ -19,13 +19,13 @@ export default function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="#how-it-works" className="text-gray-700 hover:text-influx-blue transition font-medium">
+            <Link href="/#how-it-works" className="text-gray-700 hover:text-influx-blue transition font-medium">
               How it Works
             </Link>
-            <Link href="#for-influencers" className="text-gray-700 hover:text-influx-blue transition font-medium">
+            <Link href="/#for-influencers" className="text-gray-700 hover:text-influx-blue transition font-medium">
               For Influencers
             </Link>
-            <Link href="#for-brands" className="text-gray-700 hover:text-influx-blue transition font-medium">
+            <Link href="/#for-brands" className="text-gray-700 hover:text-influx-blue transition font-medium">
               For Brands
             </Link>
             <Link href="/browse" className="text-gray-700 hover:text-influx-blue transition font-medium">
@@ -57,21 +57,21 @@ export default function Navigation() {
           <div className="md:hidden py-4 border-t border-gray-200 animate-slide-up">
             <div className="flex flex-col space-y-4">
               <Link
-                href="#how-it-works"
+                href="/#how-it-works"
                 className="text-gray-700 hover:text-influx-blue transition font-medium py-2"
                 onClick={() => setIsOpen(false)}
               >
                 How it Works
               </Link>
               <Link
-                href="#for-influencers"
+                href="/#for-influencers"
                 className="text-gray-700 hover:text-influx-blue transition font-medium py-2"
                 onClick={() => setIsOpen(false)}
               >
                 For Influencers
               </Link>
               <Link
-                href="#for-brands"
+                href="/#for-brands"
                 className="text-gray-700 hover:text-influx-blue transition font-medium py-2"
                 onClick={() => setIsOpen(false)}
               >

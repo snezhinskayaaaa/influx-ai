@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Search, Filter, TrendingUp, Instagram, Youtube, Users, Sparkles, CheckCircle2 } from 'lucide-react';
 import Navigation from '@/components/ui/Navigation';
 import Footer from '@/components/ui/Footer';
@@ -217,9 +216,8 @@ export default function BrowsePage() {
             {influencers.length > 0 && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {influencers.map((influencer) => (
-                  <Link
+                  <div
                     key={influencer.id}
-                    href={`/influencers/${influencer.handle}`}
                     className="group"
                   >
                     <Card hover className="h-full overflow-hidden p-0">
@@ -309,7 +307,7 @@ export default function BrowsePage() {
                         )}
                       </div>
                     </Card>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
