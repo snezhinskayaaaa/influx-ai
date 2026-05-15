@@ -16,8 +16,8 @@ export default function NewCampaignPage() {
   const [desiredInfluencerCount, setDesiredInfluencerCount] = useState('1');
   const [deliverables, setDeliverables] = useState('');
 
-  const budgetMinCents = budgetMin ? Math.round(parseFloat(budgetMin) * 100) : 0;
-  const budgetMaxCents = budgetMax ? Math.round(parseFloat(budgetMax) * 100) : 0;
+  const budgetMinNum = budgetMin ? parseFloat(budgetMin) : 0;
+  const budgetMaxNum = budgetMax ? parseFloat(budgetMax) : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +33,7 @@ export default function NewCampaignPage() {
       setToast({ type: 'error', message: 'Please enter a valid maximum budget.' });
       return;
     }
-    if (budgetMinCents > budgetMaxCents) {
+    if (budgetMinNum > budgetMaxNum) {
       setToast({ type: 'error', message: 'Minimum budget cannot exceed maximum budget.' });
       return;
     }
@@ -53,8 +53,8 @@ export default function NewCampaignPage() {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          budgetMin: budgetMinCents,
-          budgetMax: budgetMaxCents,
+          budgetMin: budgetMinNum,
+          budgetMax: budgetMaxNum,
           desiredInfluencerCount: parseInt(desiredInfluencerCount) || 1,
           deliverables: deliverablesList,
         }),
@@ -95,7 +95,7 @@ export default function NewCampaignPage() {
               <Link href="/dashboard/brand/settings" className="text-gray-600 hover:text-gray-900">
                 Settings
               </Link>
-              <form action="/auth/logout" method="post">
+              <form action="/api/auth/logout" method="post">
                 <button className="text-gray-600 hover:text-gray-900">Logout</button>
               </form>
             </div>

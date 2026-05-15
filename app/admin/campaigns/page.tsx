@@ -95,7 +95,7 @@ export default function CampaignManagementPage() {
               <Link href="/admin/campaigns" className="hover:text-electric-cyan">
                 Campaigns
               </Link>
-              <form action="/auth/logout" method="post">
+              <form action="/api/auth/logout" method="post">
                 <button className="hover:text-electric-cyan">Logout</button>
               </form>
             </div>

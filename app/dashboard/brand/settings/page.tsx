@@ -221,7 +221,7 @@ export default function BrandSettingsPage() {
               <Link href="/dashboard/brand/settings" className="text-gray-900 font-medium">
                 Settings
               </Link>
-              <form action="/auth/logout" method="post">
+              <form action="/api/auth/logout" method="post">
                 <button className="text-gray-600 hover:text-gray-900">Logout</button>
               </form>
             </div>

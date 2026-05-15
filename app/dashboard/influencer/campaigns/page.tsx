@@ -70,7 +70,7 @@ export default async function InfluencerCampaignsPage() {
               <Link href="/dashboard/influencer/settings" className="text-gray-600 hover:text-gray-900">
                 Settings
               </Link>
-              <form action="/auth/logout" method="post">
+              <form action="/api/auth/logout" method="post">
                 <button className="text-gray-600 hover:text-gray-900">Logout</button>
               </form>
             </div>

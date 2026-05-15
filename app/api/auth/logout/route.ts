@@ -1,19 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { removeAuthCookie } from '@/lib/auth'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     await removeAuthCookie()
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200 }
-    )
+    return NextResponse.redirect(new URL('/', request.url))
   } catch (error) {
     console.error('Logout error:', error)
-    return NextResponse.json(
-      { success: false, error: 'An unexpected error occurred' },
-      { status: 500 }
-    )
+    return NextResponse.redirect(new URL('/', request.url))
   }
 }
