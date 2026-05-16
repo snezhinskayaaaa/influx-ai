@@ -32,7 +32,7 @@ export async function GET(
     }
 
     const isBrandOwner = campaign.brand.userId === user.userId
-    const isCollaborator = campaign.collaborations.some(c => c.influencer.userId === user.userId)
+    const isCollaborator = campaign.collaborations.some((c: { influencer: { userId: string } }) => c.influencer.userId === user.userId)
     const isAdmin = user.role === 'ADMIN'
 
     if (!isBrandOwner && !isCollaborator && !isAdmin) {

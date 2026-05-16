@@ -15,6 +15,19 @@ const authRoutes = ['/auth/login', '/brands/signup', '/influencers/signup']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // CSRF protection for mutation requests to API routes
+  if (
+    pathname.startsWith('/api/') &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)
+  ) {
+    const origin = request.headers.get('origin')
+    const host = request.headers.get('host')
+    if (origin && host && !origin.includes(host)) {
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+  }
+
   const token = request.cookies.get(COOKIE_NAME)?.value
 
   // Check if route needs protection
@@ -66,5 +79,6 @@ export const config = {
     '/auth/:path*',
     '/brands/signup',
     '/influencers/signup',
+    '/api/:path*',
   ],
 }

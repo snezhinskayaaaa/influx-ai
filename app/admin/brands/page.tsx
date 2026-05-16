@@ -5,6 +5,19 @@ import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
+interface BrandListItem {
+  id: string;
+  companyName: string;
+  industry: string | null;
+  website: string | null;
+  monthlyBudgetRange: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  createdAt: Date;
+  profile: { email: string } | null;
+  _count: { campaigns: number };
+}
+
 export default async function BrandManagementPage() {
   const user = await getCurrentUser();
   if (!user || user.role !== 'ADMIN') {
@@ -66,7 +79,7 @@ export default async function BrandManagementPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-sm font-medium text-gray-600 mb-1">Industries</div>
             <div className="text-3xl font-bold text-influx-blue">
-              {new Set(brandList.map((b) => b.industry).filter(Boolean)).size}
+              {new Set(brandList.map((b: BrandListItem) => b.industry).filter(Boolean)).size}
             </div>
             <div className="text-xs text-gray-500 mt-1">Unique sectors</div>
           </div>
@@ -74,7 +87,7 @@ export default async function BrandManagementPage() {
             <div className="text-sm font-medium text-gray-600 mb-1">This Month</div>
             <div className="text-3xl font-bold text-success-green">
               {
-                brandList.filter((b) => {
+                brandList.filter((b: BrandListItem) => {
                   const d = new Date(b.createdAt);
                   const now = new Date();
                   return (
@@ -116,7 +129,7 @@ export default async function BrandManagementPage() {
                     </td>
                   </tr>
                 ) : (
-                  brandList.map((brand) => (
+                  brandList.map((brand: BrandListItem) => (
                     <tr
                       key={brand.id}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"

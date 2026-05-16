@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCurrentUser, comparePassword, hashPassword } from '@/lib/auth'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function PATCH(request: NextRequest) {
   try {
+    // Rate limiting: 3 attempts per minute per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { allowed, remaining } = rateLimit(`password:${ip}`, 3, 60000)
+
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many password change attempts. Please try again later.' },
+        { status: 429, headers: { 'X-RateLimit-Remaining': String(remaining) } }
+      )
+    }
+
     // Check authentication
     const user = await getCurrentUser()
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -42,7 +43,7 @@ export async function POST(
     }
 
     // Atomically transfer funds from frozen to influencer balance
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.brand.update({
         where: { id: collaboration.campaign.brand.id },
         data: {

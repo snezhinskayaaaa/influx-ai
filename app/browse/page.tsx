@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, TrendingUp, Instagram, Youtube, Users, Sparkles, CheckCircle2 } from 'lucide-react';
 import Navigation from '@/components/ui/Navigation';
 import Footer from '@/components/ui/Footer';
@@ -29,17 +29,76 @@ export default function BrowsePage() {
   const [selectedFollowers, setSelectedFollowers] = useState('all');
   const [sortBy, setSortBy] = useState('followers');
 
-  useEffect(() => {
-    const fetchInfluencers = async () => {
-      const res = await fetch('/api/influencers')
-      const data = await res.json()
+  const fetchInfluencers = useCallback(async (
+    overrides?: { search?: string; niche?: string; followers?: string; sort?: string }
+  ) => {
+    setLoading(true);
+    const params = new URLSearchParams();
+
+    const search = overrides?.search ?? searchTerm;
+    const niche = overrides?.niche ?? selectedNiche;
+    const followers = overrides?.followers ?? selectedFollowers;
+    const sort = overrides?.sort ?? sortBy;
+
+    if (search.trim()) {
+      params.set('search', search.trim());
+    }
+    if (niche !== 'all') {
+      params.set('niche', niche);
+    }
+    if (followers !== 'all') {
+      params.set('followers', followers);
+    }
+    if (sort) {
+      params.set('sort', sort);
+    }
+
+    const query = params.toString();
+    const url = `/api/influencers${query ? `?${query}` : ''}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
       if (res.ok && data.influencers) {
-        setInfluencers(data.influencers)
+        setInfluencers(data.influencers);
       }
-      setLoading(false)
-    };
+    } catch (error) {
+      console.error('Failed to fetch influencers:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, selectedNiche, selectedFollowers, sortBy]);
+
+  // Initial fetch on mount
+  useEffect(() => {
     fetchInfluencers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch when sort changes (sort is in the main content area, not behind Apply button)
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    fetchInfluencers({ sort: newSort });
+  };
+
+  const handleApplyFilters = () => {
+    fetchInfluencers();
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedNiche('all');
+    setSelectedFollowers('all');
+    setSortBy('followers');
+    // Fetch with cleared values explicitly since state updates are async
+    fetchInfluencers({ search: '', niche: 'all', followers: 'all', sort: 'followers' });
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      fetchInfluencers();
+    }
+  };
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -78,6 +137,7 @@ export default function BrowsePage() {
                 placeholder="Search by name, niche, or platform..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-influx-blue focus:outline-none text-lg"
               />
             </div>
@@ -165,8 +225,11 @@ export default function BrowsePage() {
                 </select>
               </div>
 
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" className="w-full" onClick={handleApplyFilters}>
                 Apply Filters
+              </Button>
+              <Button variant="outline" className="w-full" onClick={handleClearFilters}>
+                Clear Filters
               </Button>
             </Card>
           </aside>
@@ -179,11 +242,15 @@ export default function BrowsePage() {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {influencers.length === 0 ? 'No' : influencers.length} Influencers
                 </h2>
-                <p className="text-gray-600">Showing all verified AI talent</p>
+                <p className="text-gray-600">
+                  {searchTerm || selectedNiche !== 'all' || selectedFollowers !== 'all'
+                    ? 'Filtered results'
+                    : 'Showing all verified AI talent'}
+                </p>
               </div>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => handleSortChange(e.target.value)}
                 className="px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-influx-blue focus:outline-none font-medium"
               >
                 <option value="followers">Most Followers</option>

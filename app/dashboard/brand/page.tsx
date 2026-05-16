@@ -5,6 +5,22 @@ import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 
+interface CollaborationSummary {
+  status: string;
+  agreedPrice: number | null;
+}
+
+interface BrandCampaign {
+  id: string;
+  title: string;
+  status: string;
+  budgetMin: number;
+  budgetMax: number;
+  createdAt: Date;
+  collaborations: CollaborationSummary[];
+  _count: { collaborations: number };
+}
+
 export default async function BrandDashboard() {
   const user = await getCurrentUser();
 

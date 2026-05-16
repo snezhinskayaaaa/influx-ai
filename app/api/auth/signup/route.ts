@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { hashPassword, createToken, setAuthCookie } from '@/lib/auth'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 3 attempts per minute per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const { allowed, remaining } = rateLimit(`signup:${ip}`, 3, 60000)
+
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many signup attempts. Please try again later.' },
+        { status: 429, headers: { 'X-RateLimit-Remaining': String(remaining) } }
+      )
+    }
+
     const body = await request.json()
     const { email, password, fullName, role, ...roleData } = body
 
@@ -76,7 +89,7 @@ export async function POST(request: NextRequest) {
     const profileId = crypto.randomUUID()
 
     // Create profile + role-specific record atomically
-    const profile = await prisma.$transaction(async (tx) => {
+    const profile = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newProfile = await tx.profile.create({
         data: {
           id: profileId,

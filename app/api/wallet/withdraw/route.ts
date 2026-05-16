@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     const fee = Math.round(amountCents * 0.03) // 3% withdrawal fee
     const payout = amountCents - fee
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updated = await tx.influencer.update({
         where: { id: influencer.id },
         data: { balance: { decrement: amountCents } },

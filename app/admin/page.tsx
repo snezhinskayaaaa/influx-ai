@@ -5,6 +5,34 @@ import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 
+interface AdminInfluencer {
+  id: string;
+  handle: string;
+  status: string;
+  instagramFollowers: number;
+  tiktokFollowers: number;
+  createdAt: Date;
+  profile: { email: string } | null;
+}
+
+interface AdminBrand {
+  id: string;
+  companyName: string;
+  industry: string | null;
+  createdAt: Date;
+  profile: { email: string } | null;
+}
+
+interface AdminCampaign {
+  id: string;
+  title: string;
+  status: string;
+  budgetMin: number;
+  budgetMax: number;
+  createdAt: Date;
+  _count: { collaborations: number };
+}
+
 export default async function AdminDashboard() {
   const user = await getCurrentUser();
 
@@ -12,9 +40,15 @@ export default async function AdminDashboard() {
     redirect('/auth/login');
   }
 
-  // Check if user is admin
+  // Check if user is admin - redirect to role-appropriate page
   if (user.role !== 'ADMIN') {
-    redirect('/dashboard');
+    if (user.role === 'BRAND') {
+      redirect('/dashboard/brand');
+    } else if (user.role === 'INFLUENCER') {
+      redirect('/dashboard/influencer');
+    } else {
+      redirect('/');
+    }
   }
 
   // Get all influencers
@@ -45,8 +79,8 @@ export default async function AdminDashboard() {
   });
   const totalRevenue = feeAggregate._sum.fee || 0;
 
-  const pendingInfluencers = influencers.filter((i) => i.status === 'PENDING').length;
-  const approvedInfluencers = influencers.filter((i) => i.status === 'APPROVED').length;
+  const pendingInfluencers = influencers.filter((i: AdminInfluencer) => i.status === 'PENDING').length;
+  const approvedInfluencers = influencers.filter((i: AdminInfluencer) => i.status === 'APPROVED').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,7 +190,7 @@ export default async function AdminDashboard() {
                 <p className="text-gray-500 text-center py-4">No influencers yet</p>
               ) : (
                 <div className="space-y-4">
-                  {influencers.slice(0, 5).map((influencer) => (
+                  {influencers.slice(0, 5).map((influencer: AdminInfluencer) => (
                     <div
                       key={influencer.id}
                       className="border border-gray-200 rounded-lg p-4"
@@ -215,7 +249,7 @@ export default async function AdminDashboard() {
                 <p className="text-gray-500 text-center py-4">No brands yet</p>
               ) : (
                 <div className="space-y-4">
-                  {brands.slice(0, 5).map((brand) => (
+                  {brands.slice(0, 5).map((brand: AdminBrand) => (
                     <div
                       key={brand.id}
                       className="border border-gray-200 rounded-lg p-4"
@@ -253,7 +287,7 @@ export default async function AdminDashboard() {
               <p className="text-gray-500 text-center py-4">No campaigns yet</p>
             ) : (
               <div className="space-y-4">
-                {campaigns.slice(0, 5).map((campaign) => (
+                {campaigns.slice(0, 5).map((campaign: AdminCampaign) => (
                   <div
                     key={campaign.id}
                     className="border border-gray-200 rounded-lg p-4 flex justify-between items-center"
