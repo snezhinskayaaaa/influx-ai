@@ -90,6 +90,12 @@ export async function POST(request: NextRequest) {
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
+    if (title.length > 200) {
+      return NextResponse.json({ error: 'Title must not exceed 200 characters' }, { status: 400 })
+    }
+    if (description && typeof description === 'string' && description.length > 5000) {
+      return NextResponse.json({ error: 'Description must not exceed 5000 characters' }, { status: 400 })
+    }
     if (!budgetMin || typeof budgetMin !== 'number' || budgetMin <= 0) {
       return NextResponse.json({ error: 'Minimum budget must be a positive number' }, { status: 400 })
     }

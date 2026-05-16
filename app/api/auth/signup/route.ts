@@ -28,9 +28,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (email.length > 254) {
+      return NextResponse.json(
+        { success: false, error: 'Email must not exceed 254 characters' },
+        { status: 400 }
+      )
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid email format' },
+        { status: 400 }
+      )
+    }
+
     if (!password || typeof password !== 'string' || password.length < 8) {
       return NextResponse.json(
         { success: false, error: 'Password must be at least 8 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (password.length > 128) {
+      return NextResponse.json(
+        { success: false, error: 'Password must not exceed 128 characters' },
+        { status: 400 }
+      )
+    }
+
+    if (fullName && typeof fullName === 'string' && fullName.length > 100) {
+      return NextResponse.json(
+        { success: false, error: 'Name must not exceed 100 characters' },
         { status: 400 }
       )
     }
@@ -59,6 +88,13 @@ export async function POST(request: NextRequest) {
       if (!roleData.handle || typeof roleData.handle !== 'string') {
         return NextResponse.json(
           { success: false, error: 'Handle is required for influencers' },
+          { status: 400 }
+        )
+      }
+
+      if (roleData.handle.length > 50) {
+        return NextResponse.json(
+          { success: false, error: 'Handle must not exceed 50 characters' },
           { status: 400 }
         )
       }

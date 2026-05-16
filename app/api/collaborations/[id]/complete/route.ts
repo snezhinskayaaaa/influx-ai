@@ -15,46 +15,47 @@ export async function POST(
 
     const { id } = await params
 
-    const collaboration = await prisma.collaboration.findUnique({
-      where: { id },
-      include: {
-        campaign: {
-          include: { brand: { select: { id: true, userId: true } } },
-        },
-        influencer: { select: { id: true, userId: true } },
-      },
-    })
-
-    if (!collaboration) {
-      return NextResponse.json({ error: 'Collaboration not found' }, { status: 404 })
-    }
-
-    // Only brand owner or admin can mark as complete
-    if (collaboration.campaign.brand.userId !== user.userId && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
-    if (collaboration.status !== 'AGREED' && collaboration.status !== 'IN_PROGRESS') {
-      return NextResponse.json({ error: 'Collaboration must be agreed or in progress to complete' }, { status: 400 })
-    }
-
-    if (!collaboration.agreedPrice) {
-      return NextResponse.json({ error: 'No agreed price set' }, { status: 400 })
-    }
-
-    // Atomically transfer funds from frozen to influencer balance
+    // All reads and checks inside the transaction to prevent race conditions
+    // (double-completion via concurrent requests)
     const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const collaboration = await tx.collaboration.findUnique({
+        where: { id },
+        include: {
+          campaign: {
+            include: { brand: { select: { id: true, userId: true } } },
+          },
+          influencer: { select: { id: true, userId: true } },
+        },
+      })
+
+      if (!collaboration) {
+        throw new Error('NOT_FOUND')
+      }
+
+      // Only brand owner or admin can mark as complete
+      if (collaboration.campaign.brand.userId !== user.userId && user.role !== 'ADMIN') {
+        throw new Error('ACCESS_DENIED')
+      }
+
+      if (collaboration.status !== 'AGREED' && collaboration.status !== 'IN_PROGRESS') {
+        throw new Error('INVALID_STATUS')
+      }
+
+      if (!collaboration.agreedPrice) {
+        throw new Error('NO_AGREED_PRICE')
+      }
+
       await tx.brand.update({
         where: { id: collaboration.campaign.brand.id },
         data: {
-          frozenBalance: { decrement: collaboration.agreedPrice! },
+          frozenBalance: { decrement: collaboration.agreedPrice },
         },
       })
 
       await tx.influencer.update({
         where: { id: collaboration.influencer.id },
         data: {
-          balance: { increment: collaboration.agreedPrice! },
+          balance: { increment: collaboration.agreedPrice },
         },
       })
 
@@ -70,7 +71,7 @@ export async function POST(
         data: {
           userId: collaboration.campaign.brand.userId,
           type: 'CAMPAIGN_PAYOUT',
-          amount: collaboration.agreedPrice!,
+          amount: collaboration.agreedPrice,
           description: `Payment to influencer for collaboration`,
           referenceId: collaboration.id,
         },
@@ -80,7 +81,7 @@ export async function POST(
         data: {
           userId: collaboration.influencer.userId,
           type: 'CAMPAIGN_PAYOUT',
-          amount: collaboration.agreedPrice!,
+          amount: collaboration.agreedPrice,
           description: `Earnings from collaboration`,
           referenceId: collaboration.id,
         },
@@ -91,6 +92,19 @@ export async function POST(
 
     return NextResponse.json({ collaboration: result })
   } catch (error) {
+    // Handle known error cases from inside the transaction
+    if (error instanceof Error) {
+      switch (error.message) {
+        case 'NOT_FOUND':
+          return NextResponse.json({ error: 'Collaboration not found' }, { status: 404 })
+        case 'ACCESS_DENIED':
+          return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        case 'INVALID_STATUS':
+          return NextResponse.json({ error: 'Collaboration must be agreed or in progress to complete' }, { status: 400 })
+        case 'NO_AGREED_PRICE':
+          return NextResponse.json({ error: 'No agreed price set' }, { status: 400 })
+      }
+    }
     console.error('POST /api/collaborations/[id]/complete error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

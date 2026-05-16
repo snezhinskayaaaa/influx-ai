@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+
+const MAX_AGREED_PRICE_DOLLARS = 1_000_000 // $1M upper bound
 
 export async function GET(
   request: NextRequest,
@@ -58,7 +61,7 @@ export async function PATCH(
     const collaboration = await prisma.collaboration.findUnique({
       where: { id },
       include: {
-        campaign: { include: { brand: { select: { userId: true } } } },
+        campaign: { include: { brand: { select: { id: true, userId: true } } } },
         influencer: { select: { userId: true } },
       },
     })
@@ -81,6 +84,12 @@ export async function PATCH(
     // Brand can set agreedPrice and brandAgreed, and accept application (NEGOTIATING)
     if (isBrandOwner || isAdmin) {
       if (body.agreedPrice !== undefined) {
+        if (typeof body.agreedPrice !== 'number' || body.agreedPrice <= 0) {
+          return NextResponse.json({ error: 'Agreed price must be a positive number' }, { status: 400 })
+        }
+        if (body.agreedPrice > MAX_AGREED_PRICE_DOLLARS) {
+          return NextResponse.json({ error: `Agreed price must not exceed $${MAX_AGREED_PRICE_DOLLARS.toLocaleString()}` }, { status: 400 })
+        }
         updateData.agreedPrice = Math.round(body.agreedPrice * 100)
       }
       if (body.brandAgreed !== undefined) {
@@ -98,8 +107,46 @@ export async function PATCH(
       }
     }
 
-    // Either party can cancel
+    // Either party can cancel; if funds were frozen, unfreeze them
     if (body.status === 'CANCELLED') {
+      const shouldUnfreeze =
+        (collaboration.status === 'AGREED' || collaboration.status === 'IN_PROGRESS') &&
+        collaboration.agreedPrice !== null &&
+        collaboration.agreedPrice > 0
+
+      if (shouldUnfreeze) {
+        updateData.status = 'CANCELLED'
+
+        const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+          await tx.brand.update({
+            where: { id: collaboration.campaign.brand.id },
+            data: {
+              balance: { increment: collaboration.agreedPrice! },
+              frozenBalance: { decrement: collaboration.agreedPrice! },
+            },
+          })
+
+          const cancelledCollab = await tx.collaboration.update({
+            where: { id },
+            data: updateData,
+          })
+
+          await tx.transaction.create({
+            data: {
+              userId: collaboration.campaign.brand.userId,
+              type: 'CAMPAIGN_UNFREEZE',
+              amount: collaboration.agreedPrice!,
+              description: `Funds unfrozen due to collaboration cancellation`,
+              referenceId: collaboration.id,
+            },
+          })
+
+          return cancelledCollab
+        })
+
+        return NextResponse.json({ collaboration: updated })
+      }
+
       updateData.status = 'CANCELLED'
     }
 

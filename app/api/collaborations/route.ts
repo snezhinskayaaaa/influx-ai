@@ -100,6 +100,9 @@ export async function POST(request: NextRequest) {
     if (!proposedPrice || typeof proposedPrice !== 'number' || proposedPrice <= 0) {
       return NextResponse.json({ error: 'Proposed price must be a positive number' }, { status: 400 })
     }
+    if (message && typeof message === 'string' && message.length > 2000) {
+      return NextResponse.json({ error: 'Message must not exceed 2000 characters' }, { status: 400 })
+    }
 
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } })
     if (!campaign || campaign.status !== 'ACTIVE') {

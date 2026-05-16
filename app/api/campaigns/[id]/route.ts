@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
+const VALID_CAMPAIGN_STATUSES = ['ACTIVE', 'COMPLETED', 'CANCELLED'] as const
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,7 +83,37 @@ export async function PATCH(
     if (body.title !== undefined) updateData.title = body.title.trim()
     if (body.description !== undefined) updateData.description = body.description || null
     if (body.desiredInfluencerCount !== undefined) updateData.desiredInfluencerCount = body.desiredInfluencerCount
-    if (body.status !== undefined) updateData.status = body.status
+
+    // Validate status against whitelist
+    if (body.status !== undefined) {
+      if (!VALID_CAMPAIGN_STATUSES.includes(body.status)) {
+        return NextResponse.json(
+          { error: `Invalid status. Allowed values: ${VALID_CAMPAIGN_STATUSES.join(', ')}` },
+          { status: 400 },
+        )
+      }
+      updateData.status = body.status
+    }
+
+    // Validate budget values
+    if (body.budgetMin !== undefined) {
+      if (typeof body.budgetMin !== 'number' || body.budgetMin <= 0) {
+        return NextResponse.json({ error: 'budgetMin must be a positive number greater than 0' }, { status: 400 })
+      }
+    }
+    if (body.budgetMax !== undefined) {
+      if (typeof body.budgetMax !== 'number' || body.budgetMax <= 0) {
+        return NextResponse.json({ error: 'budgetMax must be a positive number greater than 0' }, { status: 400 })
+      }
+    }
+
+    // Cross-validate: budgetMax must be >= budgetMin (using incoming values or existing DB values)
+    const effectiveBudgetMin = body.budgetMin !== undefined ? body.budgetMin * 100 : campaign.budgetMin
+    const effectiveBudgetMax = body.budgetMax !== undefined ? body.budgetMax * 100 : campaign.budgetMax
+    if ((body.budgetMin !== undefined || body.budgetMax !== undefined) && effectiveBudgetMax < effectiveBudgetMin) {
+      return NextResponse.json({ error: 'budgetMax must be greater than or equal to budgetMin' }, { status: 400 })
+    }
+
     if (body.budgetMin !== undefined) updateData.budgetMin = Math.round(body.budgetMin * 100)
     if (body.budgetMax !== undefined) updateData.budgetMax = Math.round(body.budgetMax * 100)
 

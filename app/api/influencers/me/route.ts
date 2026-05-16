@@ -77,6 +77,21 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
+
+    // Input length limits
+    if ('bio' in body && typeof body.bio === 'string' && body.bio.length > 2000) {
+      return NextResponse.json(
+        { error: 'Bio must not exceed 2000 characters' },
+        { status: 400 },
+      )
+    }
+    if ('handle' in body && typeof body.handle === 'string' && body.handle.length > 50) {
+      return NextResponse.json(
+        { error: 'Handle must not exceed 50 characters' },
+        { status: 400 },
+      )
+    }
+
     const updateData: Record<string, unknown> = {}
 
     for (const field of STRING_FIELDS) {
