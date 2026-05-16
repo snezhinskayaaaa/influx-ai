@@ -58,28 +58,41 @@ function getCardStyle(index: number, activeIndex: number) {
     position = position - total;
   }
 
+  // Base transform centers the card; offsets use pixel values so cards
+  // spread out visibly regardless of their own width.
+  const base = "translate(-50%, -50%)";
+
   if (position === 0) {
     return {
       zIndex: 50,
-      transform: "translateX(0%) scale(1)",
+      left: "50%" as const,
+      top: "50%" as const,
+      transform: `${base} translateX(0px) scale(1)`,
       opacity: 1,
     };
   } else if (position === 1) {
     return {
       zIndex: 40,
-      transform: "translateX(70%) scale(0.85)",
+      left: "50%" as const,
+      top: "50%" as const,
+      transform: `${base} translateX(200px) scale(0.85)`,
       opacity: 0.6,
     };
   } else if (position === -1) {
     return {
       zIndex: 40,
-      transform: "translateX(-70%) scale(0.85)",
+      left: "50%" as const,
+      top: "50%" as const,
+      transform: `${base} translateX(-200px) scale(0.85)`,
       opacity: 0.6,
     };
   } else {
+    const offset = position > 0 ? 400 : -400;
     return {
       zIndex: 10,
-      transform: `translateX(${position > 0 ? "150%" : "-150%"}) scale(0.7)`,
+      left: "50%" as const,
+      top: "50%" as const,
+      transform: `${base} translateX(${offset}px) scale(0.7)`,
       opacity: 0,
     };
   }
@@ -153,6 +166,7 @@ export default function BrandsPage() {
                         ...style,
                         transition:
                           "transform 0.7s ease-in-out, opacity 0.7s ease-in-out",
+                        willChange: "transform, opacity",
                         pointerEvents: style.opacity === 1 ? "auto" : "none",
                       }}
                     >
