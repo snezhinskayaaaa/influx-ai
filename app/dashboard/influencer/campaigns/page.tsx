@@ -5,6 +5,23 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
+interface CollaborationItem {
+  id: string;
+  status: string;
+  agreedPrice: number | null;
+  proposedPrice: number;
+  deliverables: string[];
+  createdAt: Date;
+  completedAt: Date | null;
+  campaign: {
+    title: string;
+    brand: {
+      companyName: string;
+      industry: string | null;
+    };
+  };
+}
+
 function statusBadge(status: string) {
   switch (status) {
     case 'AGREED':
@@ -43,10 +60,10 @@ export default async function InfluencerCampaignsPage() {
   })
 
   const totalEarnings = collaborations
-    .filter(c => c.status === 'COMPLETED')
-    .reduce((sum, c) => sum + (c.agreedPrice || 0), 0)
-  const activeCollaborations = collaborations.filter(c => ['AGREED', 'IN_PROGRESS'].includes(c.status)).length
-  const completedCollaborations = collaborations.filter(c => c.status === 'COMPLETED').length
+    .filter((c: CollaborationItem) => c.status === 'COMPLETED')
+    .reduce((sum: number, c: CollaborationItem) => sum + (c.agreedPrice || 0), 0)
+  const activeCollaborations = collaborations.filter((c: CollaborationItem) => ['AGREED', 'IN_PROGRESS'].includes(c.status)).length
+  const completedCollaborations = collaborations.filter((c: CollaborationItem) => c.status === 'COMPLETED').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,7 +148,7 @@ export default async function InfluencerCampaignsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {collaborations.map((collaboration) => (
+                  {collaborations.map((collaboration: CollaborationItem) => (
                     <tr key={collaboration.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{collaboration.campaign.title}</div>
@@ -165,7 +182,7 @@ export default async function InfluencerCampaignsPage() {
                       <td className="px-6 py-4">
                         {collaboration.deliverables && collaboration.deliverables.length > 0 ? (
                           <ul className="text-xs text-gray-600 space-y-1">
-                            {collaboration.deliverables.map((d, i) => (
+                            {collaboration.deliverables.map((d: string, i: number) => (
                               <li key={i} className="flex items-start gap-1">
                                 <span className="text-influx-blue mt-0.5">•</span>
                                 {d}

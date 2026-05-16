@@ -5,6 +5,20 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
+interface InfluencerCollaboration {
+  id: string;
+  status: string;
+  agreedPrice: number | null;
+  proposedPrice: number;
+  createdAt: Date;
+  campaign: {
+    title: string;
+    brand: {
+      companyName: string;
+    };
+  };
+}
+
 export default async function InfluencerDashboard() {
   const user = await getCurrentUser()
   if (!user) redirect('/auth/login')
@@ -21,10 +35,10 @@ export default async function InfluencerDashboard() {
   })
 
   const totalEarnings = collaborations
-    .filter(c => c.status === 'COMPLETED')
-    .reduce((sum, c) => sum + (c.agreedPrice || 0), 0)
-  const activeCollaborations = collaborations.filter(c => ['AGREED', 'IN_PROGRESS'].includes(c.status)).length
-  const completedCollaborations = collaborations.filter(c => c.status === 'COMPLETED').length
+    .filter((c: InfluencerCollaboration) => c.status === 'COMPLETED')
+    .reduce((sum: number, c: InfluencerCollaboration) => sum + (c.agreedPrice || 0), 0)
+  const activeCollaborations = collaborations.filter((c: InfluencerCollaboration) => ['AGREED', 'IN_PROGRESS'].includes(c.status)).length
+  const completedCollaborations = collaborations.filter((c: InfluencerCollaboration) => c.status === 'COMPLETED').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -219,7 +233,7 @@ export default async function InfluencerDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {collaborations.slice(0, 5).map((collaboration) => (
+                  {collaborations.slice(0, 5).map((collaboration: InfluencerCollaboration) => (
                     <Link
                       key={collaboration.id}
                       href={`/dashboard/influencer/campaigns/${collaboration.id}`}

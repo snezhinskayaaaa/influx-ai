@@ -51,14 +51,14 @@ export default async function BrandDashboard() {
     orderBy: { createdAt: 'desc' },
   });
 
-  const totalSpent = campaigns.reduce((sum, c) => {
+  const totalSpent = campaigns.reduce((sum: number, c: BrandCampaign) => {
     const completedCollabSpend = c.collaborations
-      .filter((col) => col.status === 'COMPLETED')
-      .reduce((s, col) => s + (col.agreedPrice || 0), 0);
+      .filter((col: CollaborationSummary) => col.status === 'COMPLETED')
+      .reduce((s: number, col: CollaborationSummary) => s + (col.agreedPrice || 0), 0);
     return sum + completedCollabSpend;
   }, 0);
-  const activeCampaigns = campaigns.filter((c) => c.status === 'ACTIVE').length;
-  const completedCampaigns = campaigns.filter((c) => c.status === 'COMPLETED').length;
+  const activeCampaigns = campaigns.filter((c: BrandCampaign) => c.status === 'ACTIVE').length;
+  const completedCampaigns = campaigns.filter((c: BrandCampaign) => c.status === 'COMPLETED').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -167,7 +167,7 @@ export default async function BrandDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {campaigns.slice(0, 5).map((campaign) => (
+                  {campaigns.slice(0, 5).map((campaign: BrandCampaign) => (
                     <Link
                       key={campaign.id}
                       href={`/dashboard/brand/campaigns/${campaign.id}`}
